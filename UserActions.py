@@ -22,13 +22,26 @@ class UserActions(UserActionsBase):
     def create_actions(self):
         self.add_global_action('select_loop', self.select_loop)
         self.add_global_action('deselect_loop', self.deselect_loop)
+        self.add_global_action('select_all_loops', self.select_all_loops)
+        self.add_global_action('deselect_all_loops', self.deselect_all_loops)
         self.add_global_action('clear_loop', self.clear_loop)
+        #self.add_global_action('clear_all_loops', self.clear_all_loops)
         self.add_global_action('stop_loop', self.stop_loop)
+        #self.add_global_action('stop_all_loops', self.stop_all_loops)
+        #self.add_global_action('reset_loop_params', self.reset_loop_params)
+        #self.add_global_action('reset_all_loop_params', self.reset_all_loop_params)
+        #self.add_global_action('mute_loop', self.mute_loop)
+        #self.add_global_action('mute_all_loops', self.mute_all_loops)
         self.add_global_action('select_clip', self.select_clip)
         self.add_global_action('deselect_clip', self.deselect_clip)
+        #self.add_global_action('select_fx', self.select_fx)
+        #self.add_global_action('deselect_fx', self.deselect_fx)
+        #self.add_global_action('reset_fx', self.reset_fx)
+        #self.add_global_action('reset_all_fx', self.reset_all_fx)
 
         self.selected_instruments = {}
         self.held_scenes = set([])
+        self._update_data()
         
 
     # Actions ----------------------------------------------------------------------------
@@ -41,15 +54,7 @@ class UserActions(UserActionsBase):
             if(scene.name == 'loop[]'):
                 self._create_loop(scene, key_name)
             else:
-                for clip_slot in scene.clip_slots:
-                    if clip_slot.has_clip and clip_slot.is_recording:
-                        self._finish_record(scene)
-                        self._select_scene(scene)
-                        return
-                    if clip_slot.has_clip and clip_slot.is_playing:
-                        self._select_scene(scene)
-                        return
-                self._trigger_scene(scene)
+                self._select_loop(scene)
         else:
             self.log('exceeded maximum loop count')
 
@@ -60,6 +65,22 @@ class UserActions(UserActionsBase):
         scene = self._get_loop_scene(key_name)
         if(scene is not None):
             self._deselect_scene(scene)
+
+
+    @catch_exception
+    def select_all_loops(self, action_def, args):
+        scenes = self._get_all_loops()
+        if(len(scenes) > 0):
+            for scene in scenes:
+                self._select_loop(scene)
+
+
+    @catch_exception
+    def deselect_all_loops(self, action_def, args):
+        scenes = [x for x in self.held_scenes if 'loop' in x.name]
+        if(len(scenes) > 0):
+            for scene in scenes:
+                self._deselect_scene(scene)
 
 
     @catch_exception
@@ -92,6 +113,21 @@ class UserActions(UserActionsBase):
         self._deselect_scene(scene)
 
 
+    @catch_exception
+    def select_fx(self, action_def, args):
+        clip_name = args
+        scene = self._get_clip_scene(clip_name)
+        self._trigger_scene(scene)
+        self._select_scene(scene)
+
+
+    @catch_exception
+    def deselect_fx(self, action_def, args):
+        clip_name = args
+        scene = self._get_clip_scene(clip_name)
+        self._deselect_scene(scene)
+
+
     # Utils ------------------------------------------------------------------------------
 
 
@@ -102,6 +138,7 @@ class UserActions(UserActionsBase):
     def _select_scene(self, scene):
         self.log('select')
         self.held_scenes.add(scene)
+        self._update_data()
         self._update_selected_instruments()
 
 
@@ -109,6 +146,7 @@ class UserActions(UserActionsBase):
         self.log('deselect')
         self.log(self.held_scenes)
         self.held_scenes.remove(scene)
+        self._update_data()
         if len(self.held_scenes) > 0:
             self._update_selected_instruments()
 
@@ -173,6 +211,18 @@ class UserActions(UserActionsBase):
         return False
 
 
+    def _select_loop(self, scene):
+        for clip_slot in scene.clip_slots:
+            if clip_slot.has_clip and clip_slot.is_recording:
+                self._finish_record(scene)
+                self._select_scene(scene)
+                return
+            if clip_slot.has_clip and clip_slot.is_playing:
+                self._select_scene(scene)
+                return
+        self._trigger_scene(scene)
+
+
     def _get_loop_scene(self, key_name):
         loop_name = 'loop[' + key_name + ']'
         for scene in self.song().scenes:
@@ -187,6 +237,14 @@ class UserActions(UserActionsBase):
     def _create_loop(self, scene, key_name):
         scene.name = 'loop[' + key_name + ']'
         scene.fire()
+
+
+    def _get_all_loops(self):
+        loops = []
+        for scene in self.song().scenes:
+            if 'loop' in scene.name and scene.name != 'loop[]':
+                loops.append(scene)
+        return loops
 
     
     def _finish_record(self, scene):
@@ -220,6 +278,14 @@ class UserActions(UserActionsBase):
             if scene_name.upper() in scene.name:
                 return scene
         return False
+
+    
+    def _update_data(self):
+        held_scene_names = []
+        for scene in self.held_scenes:
+            held_scene_names.append(scene.name)
+        self.song().set_data('held_scene_names', held_scene_names)
+
 
 
     def clyphx_trigger(self, command):
