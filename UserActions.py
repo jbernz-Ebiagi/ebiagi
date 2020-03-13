@@ -1,6 +1,7 @@
 import functools
 import traceback
 import subprocess
+from threading import Timer
 from ClyphX_Pro.clyphx_pro.UserActionsBase import UserActionsBase
 
 #Provides @catch_exception decorator for debugging
@@ -27,21 +28,27 @@ class UserActions(UserActionsBase):
         self.add_global_action('clear_loop', self.clear_loop)
         #self.add_global_action('clear_all_loops', self.clear_all_loops)
         self.add_global_action('stop_loop', self.stop_loop)
-        #self.add_global_action('stop_all_loops', self.stop_all_loops)
-        #self.add_global_action('reset_loop_params', self.reset_loop_params)
-        #self.add_global_action('reset_all_loop_params', self.reset_all_loop_params)
-        #self.add_global_action('mute_loop', self.mute_loop)
-        #self.add_global_action('mute_all_loops', self.mute_all_loops)
+        self.add_global_action('stop_all_loops', self.stop_all_loops)
+        self.add_global_action('reset_loop_params', self.reset_loop_params)
+        self.add_global_action('reset_all_loop_params', self.reset_all_loop_params)
+        self.add_global_action('mute_loop', self.mute_loop)
+        self.add_global_action('unmute_loop', self.unmute_loop)
+        self.add_global_action('mute_all_loops', self.mute_all_loops)
+        self.add_global_action('unmute_all_loops', self.unmute_all_loops)
         self.add_global_action('select_clip', self.select_clip)
         self.add_global_action('deselect_clip', self.deselect_clip)
-        #self.add_global_action('select_fx', self.select_fx)
-        #self.add_global_action('deselect_fx', self.deselect_fx)
-        #self.add_global_action('reset_fx', self.reset_fx)
-        #self.add_global_action('reset_all_fx', self.reset_all_fx)
+        self.add_global_action('select_fx', self.select_fx)
+        self.add_global_action('deselect_fx', self.deselect_fx)
+        self.add_global_action('reset_fx_params', self.reset_fx_params)
+        self.add_global_action('reset_all_fx_params', self.reset_all_fx_params)
 
         self.selected_instruments = {}
         self.held_scenes = set([])
+        self.held_fx = set([])
         self._update_data()
+
+        self.saved_params = {}
+        Timer(0.5, self._save_current_params).start()
         
 
     # Actions ----------------------------------------------------------------------------
@@ -54,7 +61,10 @@ class UserActions(UserActionsBase):
             if(scene.name == 'loop[]'):
                 self._create_loop(scene, key_name)
             else:
-                self._select_loop(scene)
+                is_playing = self._select_loop(scene)
+                if not is_playing:
+                    self._trigger_scene(scene)
+                    self._select_scene(scene)
         else:
             self.log('exceeded maximum loop count')
 
@@ -98,9 +108,57 @@ class UserActions(UserActionsBase):
         if(scene and scene.name != 'loop[]'):
             self._stop_loop(scene)
 
+
+    @catch_exception
+    def stop_all_loops(self, action_def, args):
+        scenes = self._get_all_loops()
+        for scene in scenes:
+            self._stop_loop(scene)
+
+
+    @catch_exception
+    def reset_loop_params(self, action_def, args):
+        key_name = args
+        scene = self._get_loop_scene(key_name)
+        if(scene and scene.name != 'loop[]'):
+            self._reset_loop_params(scene) 
+
+    @catch_exception
+    def reset_all_loop_params(self, action_def, args):
+        scenes = self._get_all_loops()
+        for scene in scenes:
+            self._reset_loop_params(scene) 
+
+    @catch_exception
+    def mute_loop(self, action_def, args):
+        key_name = args
+        scene = self._get_loop_scene(key_name)
+        if(scene and scene.name != 'loop[]'):
+            self._mute_loop(scene)
+
+    @catch_exception
+    def unmute_loop(self, action_def, args):
+        key_name = args
+        scene = self._get_loop_scene(key_name)
+        if(scene and scene.name != 'loop[]'):
+            self._unmute_loop(scene)
+
+    @catch_exception
+    def mute_all_loops(self, action_def, args):
+        scenes = self._get_all_loops()
+        for scene in scenes:
+            self._mute_loop(scene) 
+
+    @catch_exception
+    def unmute_all_loops(self, action_def, args):
+        scenes = self._get_all_loops()
+        for scene in scenes:
+            self._unmute_loop(scene) 
+
+
     @catch_exception
     def select_clip(self, action_def, args):
-        clip_name = args
+        clip_name = args.upper()
         scene = self._get_clip_scene(clip_name)
         self._trigger_scene(scene)
         self._select_scene(scene)
@@ -108,24 +166,40 @@ class UserActions(UserActionsBase):
 
     @catch_exception
     def deselect_clip(self, action_def, args):
-        clip_name = args
+        clip_name = args.upper()
         scene = self._get_clip_scene(clip_name)
         self._deselect_scene(scene)
 
 
     @catch_exception
     def select_fx(self, action_def, args):
-        clip_name = args
-        scene = self._get_clip_scene(clip_name)
-        self._trigger_scene(scene)
-        self._select_scene(scene)
+        fx_name = args.upper()
+        device = self._get_fx_device(fx_name)
+        self.log(device)
+        self._select_fx_device(device)
 
 
     @catch_exception
     def deselect_fx(self, action_def, args):
-        clip_name = args
-        scene = self._get_clip_scene(clip_name)
-        self._deselect_scene(scene)
+        fx_name = args.upper()
+        device = self._get_fx_device(fx_name)
+        self._deselect_fx_device(device)
+
+
+    @catch_exception
+    def reset_fx_params(self, action_def, args):
+        fx_name = args.upper()
+        device = self._get_fx_device(fx_name)
+        self._reset_fx_params(device)
+
+
+    @catch_exception
+    def reset_all_fx_params(self, action_def, args):
+        for track in self.song().tracks:
+            if track.name == 'FX':
+                for device in track.devices:
+                    self._reset_fx_params(device) 
+
 
 
     # Utils ------------------------------------------------------------------------------
@@ -136,19 +210,17 @@ class UserActions(UserActionsBase):
 
 
     def _select_scene(self, scene):
-        self.log('select')
         self.held_scenes.add(scene)
         self._update_data()
         self._update_selected_instruments()
 
 
     def _deselect_scene(self, scene):
-        self.log('deselect')
         self.log(self.held_scenes)
         self.held_scenes.remove(scene)
-        self._update_data()
-        if len(self.held_scenes) > 0:
-            self._update_selected_instruments()
+        if len(self.held_scenes) + len(self.held_fx) > 0:
+            self._update_data()
+            self._update_selected_instruments()    
 
 
     def _update_selected_instruments(self):
@@ -172,13 +244,12 @@ class UserActions(UserActionsBase):
                 loop_open = 0
                 clip_open = 0
 
-                self.log(track.name)
                 if track.name in self.selected_instruments:
                     if 'loop' in self.selected_instruments[track.name]:
                         loop_open = 127
                     if 'clip' in self.selected_instruments[track.name]:
                         clip_open = 127
-                    if len(self.selected_instruments) == 1:
+                    if len(self.held_fx) == 0 and len(self.selected_instruments) == 1:
                         self.song().view.selected_track = track
 
                 for device in track.devices:
@@ -188,9 +259,29 @@ class UserActions(UserActionsBase):
                                 subdevice.parameters[8].value = loop_open
                             if subdevice.name == 'CLIP_IN':
                                 subdevice.parameters[8].value = clip_open
-                            
+            if track.name == 'FX':
+                self.log(track.devices)
+                if len(self.held_fx) == 1 and len(self.selected_instruments) == 0:
+                    self.song().view.selected_track = track
+                for device in track.devices:
+                    if device in self.held_fx:
+                        device.parameters[8].value = 127
+                    else:
+                        device.parameters[8].value = 0
+                    
+
+    #loop tracks
+    def _get_tracks_of_scene(self, scene):
+        tracks = []
+        i = 0
+        for clip_slot in scene.clip_slots:
+            if self._clip_slot_has_notes(clip_slot):
+                tracks.append(self.song().tracks[i])
+            i +=1
+        return tracks
 
 
+    #instr track names
     def _get_tracks_in_scene(self, scene):
         tracks = []
         i = 0
@@ -216,12 +307,12 @@ class UserActions(UserActionsBase):
             if clip_slot.has_clip and clip_slot.is_recording:
                 self._finish_record(scene)
                 self._select_scene(scene)
-                return
+                return True
             if clip_slot.has_clip and clip_slot.is_playing:
                 self._select_scene(scene)
-                return
-        self._trigger_scene(scene)
-
+                return True
+        return False
+            
 
     def _get_loop_scene(self, key_name):
         loop_name = 'loop[' + key_name + ']'
@@ -273,11 +364,75 @@ class UserActions(UserActionsBase):
                 clip_slot.stop()
 
 
+    def _mute_loop(self, scene):
+        tracks = self._get_tracks_of_scene(scene)
+        for track in tracks:
+            track.mute = True
+
+
+    def _unmute_loop(self, scene):
+        tracks = self._get_tracks_of_scene(scene)
+        for track in tracks:
+            track.mute = False
+
+
+    def _reset_loop_params(self, scene):
+        track_names = self._get_tracks_in_scene(scene)
+        for track in self.song().tracks:
+            if track.name in track_names:
+                for i in range(5,9):
+                    self.log(track.devices[0].parameters[i].value)
+                    track.devices[0].parameters[i].value = self.saved_params[track.name][i]
+
+
     def _get_clip_scene(self, scene_name):
         for scene in self.song().scenes:
             if scene_name.upper() in scene.name:
                 return scene
         return False
+
+
+    def _get_fx_device(self, device_name):
+        for track in self.song().tracks:
+            if track.name == 'FX':
+                for device in track.devices:
+                    if device.name == device_name:
+                        return device
+        return false
+
+
+    def _select_fx_device(self, device):
+        self.held_fx.add(device)
+        self._update_data()
+        self._update_selected_instruments()
+
+
+    def _deselect_fx_device(self, device):
+        self.held_fx.remove(device)
+        if len(self.held_scenes) + len(self.held_fx) > 0:
+            self._update_data()
+            self._update_selected_instruments()       
+
+
+    def _reset_fx_params(self, device):
+        for i in range(1,9):
+            device.parameters[i].value = self.saved_params[device.name][i]    
+
+
+    def _save_current_params(self):
+        current_params = {}
+        for track in self.song().tracks:
+            if 'INSTR' in track.name:
+                current_params[track.name] = {}
+                for i in range(5,9):
+                    self.log(track.devices[0].parameters[i].name)
+                    current_params[track.name][i] = track.devices[0].parameters[i].value
+            if track.name == 'FX':
+                for device in track.devices:
+                    current_params[device.name] = {}
+                    for i in range(1,9):
+                        current_params[device.name][i] = device.parameters[i].value
+        self.saved_params = current_params
 
     
     def _update_data(self):
@@ -286,6 +441,10 @@ class UserActions(UserActionsBase):
             held_scene_names.append(scene.name)
         self.song().set_data('held_scene_names', held_scene_names)
 
+        held_fx_names = []
+        for device in self.held_fx:
+            held_fx_names.append(device.name)
+        self.song().set_data('held_fx_names', held_fx_names)
 
 
     def clyphx_trigger(self, command):
