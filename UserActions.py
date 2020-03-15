@@ -41,10 +41,15 @@ class UserActions(UserActionsBase):
         self.add_global_action('deselect_fx', self.deselect_fx)
         self.add_global_action('reset_fx_params', self.reset_fx_params)
         self.add_global_action('reset_all_fx_params', self.reset_all_fx_params)
+        self.add_global_action('arm_cbord_instrument', self.arm_cbord_instrument)
+        self.add_global_action('select_cbord', self.select_cbord)
+
 
         self.selected_instruments = {}
         self.held_scenes = set([])
         self.held_fx = set([])
+        self.cbord_inputs = []
+        self._update_cbord_inputs()
         self._update_data()
 
         self.saved_params = {}
@@ -198,8 +203,18 @@ class UserActions(UserActionsBase):
         for track in self.song().tracks:
             if track.name == 'FX':
                 for device in track.devices:
-                    self._reset_fx_params(device) 
+                    self._reset_fx_params(device)
 
+
+    @catch_exception
+    def arm_cbord_input(self, action_def, args):
+        index = int(args) - 1 
+        input = self.cbord_inputs[index]
+
+
+    @catch_exception
+    def select_cbord(self, action_def, args):
+        self.log('select')
 
 
     # Utils ------------------------------------------------------------------------------
@@ -345,6 +360,8 @@ class UserActions(UserActionsBase):
                 clip_slot.clip.select_all_notes()
                 if len(clip_slot.clip.get_selected_notes()) > 0:
                     clip_count += 1
+                else:
+                    clip_slot.clip.muted = 1
         if clip_count == 0:
             self._clear_loop(scene)
         else:
@@ -433,6 +450,15 @@ class UserActions(UserActionsBase):
                     for i in range(1,9):
                         current_params[device.name][i] = device.parameters[i].value
         self.saved_params = current_params
+
+    
+    def _update_cbord_inputs(self):
+        self.cbord_inputs = []
+        for track in self.song().tracks:
+            if track.name == 'MIDI_IN':
+                for chain in track.device[0].chains:
+                    if chain.name == 'CBORD':
+                        self.cbord_inputs.append[track]
 
     
     def _update_data(self):
