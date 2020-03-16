@@ -1,23 +1,11 @@
-import functools
-import traceback
-import subprocess
 from threading import Timer
 from ClyphX_Pro.clyphx_pro.UserActionsBase import UserActionsBase
+from _utils import catch_exception
 
-from _LoopActions import LoopActions
-from _ClipActions import ClipActions
-from _FXActions import FXActions
-from _CbordActions import CbordActions
-
-
-def catch_exception(f):
-    @functools.wraps(f)
-    def func(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except:
-            args[0].canonical_parent.log_message(traceback.format_exc())
-    return func
+from _LoopController import LoopController
+from _ClipController import ClipController
+from _FXController import FXController
+from _CbordController import CbordController
 
 
 class GlobalActions(UserActionsBase):
@@ -25,16 +13,12 @@ class GlobalActions(UserActionsBase):
     @catch_exception
     def create_actions(self):
 
-        self.loop_actions = LoopActions(self)
-        self.clip_actions = ClipActions(self)
-        self.fx_actions = FXActions(self)
-        self.cbord_actions = CbordActions(self)
+        self.loop = LoopController(self)
+        self.clip = ClipController(self)
+        self.fx = FXController(self)
+        self.cbord = CbordController(self)
 
         self.selected_instruments = {}
-        self.held_scenes = set([])
-        self.held_fx = set([])
-        self.cbord_inputs = []
-        #self._update_cbord_inputs()
         self._update_data()
 
         self.saved_params = {}
@@ -45,6 +29,7 @@ class GlobalActions(UserActionsBase):
 
 
 
+
     # Utils ------------------------------------------------------------------------------
 
 
@@ -52,38 +37,36 @@ class GlobalActions(UserActionsBase):
         scene.fire()
 
 
-    def _select_scene(self, scene):
-        self.held_scenes.add(scene)
-        self._update_data()
-        self._update_selected_instruments()
-
-
-    def _deselect_scene(self, scene):
-        self.log(self.held_scenes)
-        self.held_scenes.remove(scene)
-        if len(self.held_scenes) + len(self.held_fx) > 0:
-            self._update_data()
-            self._update_selected_instruments()    
+    def _total_held(self):
+        return len(self.loop.held_loops) + len(self.clip.held_clips) + len(self.fx.held_fx)
 
 
     def _update_selected_instruments(self):
-        self.log('update')
         self.selected_instruments.clear()
 
-        for scene in self.held_scenes:
+        for scene in self.loop.held_loops:
             for track_name in self._get_tracks_in_scene(scene):
-                self.log(track_name)
                 if not track_name in self.selected_instruments:
                     self.selected_instruments[track_name] = set([])
-                if 'loop' in scene.name:
                     self.selected_instruments[track_name].add('loop')
-                if 'CLIP' in scene.name:
+
+        for scene in self.clip.held_clips:
+            for track_name in self._get_tracks_in_scene(scene):
+                if not track_name in self.selected_instruments:
+                    self.selected_instruments[track_name] = set([])
                     self.selected_instruments[track_name].add('clip')
+
+        
+        if len(self.selected_instruments) == 0:
+            if self.cbord.selected_input:
+                track_name = self.cbord.selected_input.output_routing_type.display_name
+                self.selected_instruments[track_name] = set([])
+                self.selected_instruments[track_name].add('clip')
 
 
         for track in self.song().tracks:
-            if 'INSTR' in track.name:
 
+            if 'INSTR' in track.name:
                 loop_open = 0
                 clip_open = 0
 
@@ -102,12 +85,12 @@ class GlobalActions(UserActionsBase):
                                 subdevice.parameters[8].value = loop_open
                             if subdevice.name == 'CLIP_IN':
                                 subdevice.parameters[8].value = clip_open
+
             if track.name == 'FX':
-                self.log(track.devices)
-                if len(self.held_fx) == 1 and len(self.selected_instruments) == 0:
+                if len(self.fx.held_fx) == 1 and len(self.selected_instruments) == 0:
                     self.song().view.selected_track = track
                 for device in track.devices:
-                    if device in self.held_fx:
+                    if device in self.fx.held_fx:
                         device.parameters[8].value = 127
                     else:
                         device.parameters[8].value = 0
@@ -151,7 +134,6 @@ class GlobalActions(UserActionsBase):
             if 'INSTR' in track.name:
                 current_params[track.name] = {}
                 for i in range(5,9):
-                    self.log(track.devices[0].parameters[i].name)
                     current_params[track.name][i] = track.devices[0].parameters[i].value
             if track.name == 'FX':
                 for device in track.devices:
@@ -163,12 +145,14 @@ class GlobalActions(UserActionsBase):
     
     def _update_data(self):
         held_scene_names = []
-        for scene in self.held_scenes:
+        for scene in self.loop.held_loops:
+            held_scene_names.append(scene.name)
+        for scene in self.clip.held_clips:
             held_scene_names.append(scene.name)
         self.song().set_data('held_scene_names', held_scene_names)
 
         held_fx_names = []
-        for device in self.held_fx:
+        for device in self.fx.held_fx:
             held_fx_names.append(device.name)
         self.song().set_data('held_fx_names', held_fx_names)
 
@@ -179,17 +163,3 @@ class GlobalActions(UserActionsBase):
 
     def log(self, message):
         self.canonical_parent.log_message(message)
-
-
-#Provides @catch_exception decorator for debugging
-def catch_exception(f):
-    @functools.wraps(f)
-    def func(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except:
-            args[0].canonical_parent.log_message(traceback.format_exc())
-    return func
-
-def parse_args(s):
-    return s.split(' ')

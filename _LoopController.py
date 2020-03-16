@@ -1,4 +1,6 @@
-class LoopActions:
+from _utils import catch_exception
+
+class LoopController:
 
     def __init__(self, GlobalActions):
         self.parent = GlobalActions
@@ -17,10 +19,12 @@ class LoopActions:
         self.parent.add_global_action('mute_all_loops', self.mute_all_loops)
         self.parent.add_global_action('unmute_all_loops', self.unmute_all_loops)
 
+        self.held_loops = set([])
+
 
     # Actions ----------------------------------------------------------------------------
 
-
+    @catch_exception
     def select_loop(self, action_def, args):
         key_name = args
         scene = self._get_loop_scene(key_name)
@@ -40,9 +44,9 @@ class LoopActions:
         key_name = args
         scene = self._get_loop_scene(key_name)
         if(scene is not None):
-            self.parent._deselect_scene(scene)
+            self._deselect_loop(scene)
 
-
+    @catch_exception
     def select_all_loops(self, action_def, args):
         scenes = self._get_all_loops()
         if(len(scenes) > 0):
@@ -51,10 +55,10 @@ class LoopActions:
 
 
     def deselect_all_loops(self, action_def, args):
-        scenes = [x for x in self.parent.held_scenes if 'loop' in x.name]
+        scenes = [x for x in self.held_loops if 'loop' in x.name]
         if(len(scenes) > 0):
             for scene in scenes:
-                self.parent._deselect_scene(scene)
+                self._deselect_loop(scene)
 
 
     def clear_loop(self, action_def, args):
@@ -120,16 +124,24 @@ class LoopActions:
 
 
     def _select_loop(self, scene):
+        self.parent.log('select')
         for clip_slot in scene.clip_slots:
             if clip_slot.has_clip and clip_slot.is_recording:
                 self._finish_record(scene)
-                self.parent._select_scene(scene)
-                return True
             if clip_slot.has_clip and clip_slot.is_playing:
-                self.parent._select_scene(scene)
+                self.held_loops.add(scene)
+                self.parent._update_data()
+                self.parent._update_selected_instruments()
                 return True
         return False
             
+
+    def _deselect_loop(self, scene):
+        self.held_loops.remove(scene)
+        if self.parent._total_held() > 0:
+            self.parent._update_data()
+            self.parent._update_selected_instruments()    
+
 
     def _get_loop_scene(self, key_name):
         loop_name = 'loop[' + key_name + ']'
@@ -156,14 +168,34 @@ class LoopActions:
 
     
     def _finish_record(self, scene):
+        self.parent.log('finish')
         clip_count = 0
+        current_group_index = 0
+        i = 0
+
         for clip_slot in scene.clip_slots:
+
+            if clip_slot.is_group_slot:
+                current_group_index = i
+
             if clip_slot.has_clip:
                 clip_slot.clip.select_all_notes()
+
                 if len(clip_slot.clip.get_selected_notes()) > 0:
                     clip_count += 1
+                    n = current_group_index + 1
+                    while not scene.clip_slots[n].is_group_slot:
+                        if not scene.clip_slots[n].has_clip:
+                            scene.clip_slots[n].create_clip(1)
+                            scene.clip_slots[n].clip.name = "-"
+                            scene.clip_slots[n].clip.muted = 1
+                            scene.clip_slots[n].has_stop_button = 1
+                        n += 1
                 else:
                     clip_slot.clip.muted = 1
+
+            i += 1
+
         if clip_count == 0:
             self._clear_loop(scene)
         else:
@@ -173,6 +205,8 @@ class LoopActions:
     def _clear_loop(self, scene):
         for clip_slot in scene.clip_slots:
             if clip_slot.has_clip:
+                if clip_slot.clip.name == "-":
+                    clip_slot.has_stop_button = 0
                 clip_slot.delete_clip()
         scene.name = 'loop[]'
 

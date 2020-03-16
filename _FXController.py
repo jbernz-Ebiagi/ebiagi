@@ -1,4 +1,4 @@
-class FXActions:
+class FXController:
 
     def __init__(self, GlobalActions):
         self.parent = GlobalActions
@@ -6,6 +6,8 @@ class FXActions:
         self.parent.add_global_action('deselect_fx', self.deselect_fx)
         self.parent.add_global_action('reset_fx_params', self.reset_fx_params)
         self.parent.add_global_action('reset_all_fx_params', self.reset_all_fx_params)
+
+        self.held_fx = set([])
 
 
     # Actions ----------------------------------------------------------------------------
@@ -49,14 +51,14 @@ class FXActions:
 
 
     def _select_fx_device(self, device):
-        self.parent.held_fx.add(device)
+        self.held_fx.add(device)
         self.parent._update_data()
         self.parent._update_selected_instruments()
 
 
     def _deselect_fx_device(self, device):
-        self.parent.held_fx.remove(device)
-        if len(self.parent.held_scenes) + len(self.parent.held_fx) > 0:
+        self.held_fx.remove(device)
+        if parent._total_held() > 0:
             self.parent._update_data()
             self.parent._update_selected_instruments()       
 
