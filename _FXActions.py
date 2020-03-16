@@ -1,6 +1,3 @@
-from GlobalActions import catch_exception
-
-
 class FXActions:
 
     def __init__(self, GlobalActions):
@@ -14,28 +11,24 @@ class FXActions:
     # Actions ----------------------------------------------------------------------------
 
 
-    @catch_exception
     def select_fx(self, action_def, args):
         fx_name = args.upper()
         device = self._get_fx_device(fx_name)
         self._select_fx_device(device)
 
 
-    @catch_exception
     def deselect_fx(self, action_def, args):
         fx_name = args.upper()
         device = self._get_fx_device(fx_name)
         self._deselect_fx_device(device)
 
 
-    @catch_exception
     def reset_fx_params(self, action_def, args):
         fx_name = args.upper()
         device = self._get_fx_device(fx_name)
         self._reset_fx_params(device)
 
 
-    @catch_exception
     def reset_all_fx_params(self, action_def, args):
         for track in self.parent.song().tracks:
             if track.name == 'FX':

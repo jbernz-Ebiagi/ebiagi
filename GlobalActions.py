@@ -3,14 +3,26 @@ import traceback
 import subprocess
 from threading import Timer
 from ClyphX_Pro.clyphx_pro.UserActionsBase import UserActionsBase
-import LoopActions
-import ClipActions
-import FXActions
-import CbordActions
+
+from _LoopActions import LoopActions
+from _ClipActions import ClipActions
+from _FXActions import FXActions
+from _CbordActions import CbordActions
+
+
+def catch_exception(f):
+    @functools.wraps(f)
+    def func(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except:
+            args[0].canonical_parent.log_message(traceback.format_exc())
+    return func
 
 
 class GlobalActions(UserActionsBase):
 
+    @catch_exception
     def create_actions(self):
 
         self.loop_actions = LoopActions(self)
@@ -22,7 +34,7 @@ class GlobalActions(UserActionsBase):
         self.held_scenes = set([])
         self.held_fx = set([])
         self.cbord_inputs = []
-        self._update_cbord_inputs()
+        #self._update_cbord_inputs()
         self._update_data()
 
         self.saved_params = {}

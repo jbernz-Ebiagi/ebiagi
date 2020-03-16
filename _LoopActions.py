@@ -1,6 +1,3 @@
-from GlobalActions import catch_exception
-
-
 class LoopActions:
 
     def __init__(self, GlobalActions):
@@ -19,13 +16,11 @@ class LoopActions:
         self.parent.add_global_action('unmute_loop', self.unmute_loop)
         self.parent.add_global_action('mute_all_loops', self.mute_all_loops)
         self.parent.add_global_action('unmute_all_loops', self.unmute_all_loops)
-        self.parent.add_global_action('select_clip', self.select_clip)
 
 
     # Actions ----------------------------------------------------------------------------
 
 
-    @catch_exception
     def select_loop(self, action_def, args):
         key_name = args
         scene = self._get_loop_scene(key_name)
@@ -41,7 +36,6 @@ class LoopActions:
             self.parent.log('exceeded maximum loop count')
 
 
-    @catch_exception
     def deselect_loop(self, action_def, args):
         key_name = args
         scene = self._get_loop_scene(key_name)
@@ -49,7 +43,6 @@ class LoopActions:
             self.parent._deselect_scene(scene)
 
 
-    @catch_exception
     def select_all_loops(self, action_def, args):
         scenes = self._get_all_loops()
         if(len(scenes) > 0):
@@ -57,7 +50,6 @@ class LoopActions:
                 self._select_loop(scene)
 
 
-    @catch_exception
     def deselect_all_loops(self, action_def, args):
         scenes = [x for x in self.parent.held_scenes if 'loop' in x.name]
         if(len(scenes) > 0):
@@ -65,7 +57,6 @@ class LoopActions:
                 self.parent._deselect_scene(scene)
 
 
-    @catch_exception
     def clear_loop(self, action_def, args):
         key_name = args
         scene = self._get_loop_scene(key_name)
@@ -73,7 +64,6 @@ class LoopActions:
             self._clear_loop(scene)
 
 
-    @catch_exception
     def stop_loop(self, action_def, args):
         key_name = args
         scene = self._get_loop_scene(key_name)
@@ -81,14 +71,12 @@ class LoopActions:
             self._stop_loop(scene)
 
 
-    @catch_exception
     def stop_all_loops(self, action_def, args):
         scenes = self._get_all_loops()
         for scene in scenes:
             self._stop_loop(scene)
 
 
-    @catch_exception
     def reset_loop_params(self, action_def, args):
         key_name = args
         scene = self._get_loop_scene(key_name)
@@ -96,14 +84,12 @@ class LoopActions:
             self._reset_loop_params(scene) 
 
 
-    @catch_exception
     def reset_all_loop_params(self, action_def, args):
         scenes = self._get_all_loops()
         for scene in scenes:
             self._reset_loop_params(scene) 
 
 
-    @catch_exception
     def mute_loop(self, action_def, args):
         key_name = args
         scene = self._get_loop_scene(key_name)
@@ -111,7 +97,6 @@ class LoopActions:
             self._mute_loop(scene)
 
 
-    @catch_exception
     def unmute_loop(self, action_def, args):
         key_name = args
         scene = self._get_loop_scene(key_name)
@@ -119,14 +104,12 @@ class LoopActions:
             self._unmute_loop(scene)
 
 
-    @catch_exception
     def mute_all_loops(self, action_def, args):
         scenes = self._get_all_loops()
         for scene in scenes:
             self._mute_loop(scene) 
 
 
-    @catch_exception
     def unmute_all_loops(self, action_def, args):
         scenes = self._get_all_loops()
         for scene in scenes:

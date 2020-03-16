@@ -1,6 +1,3 @@
-from GlobalActions import catch_exception
-
-
 class ClipActions:
 
     def __init__(self, GlobalActions):
@@ -12,7 +9,6 @@ class ClipActions:
     # Actions ----------------------------------------------------------------------------
 
 
-    @catch_exception
     def select_clip(self, action_def, args):
         clip_name = args.upper()
         scene = self.parent._get_clip_scene(clip_name)
@@ -20,7 +16,6 @@ class ClipActions:
         self.parent._select_scene(scene)
 
 
-    @catch_exception
     def deselect_clip(self, action_def, args):
         clip_name = args.upper()
         scene = self._get_clip_scene(clip_name)
