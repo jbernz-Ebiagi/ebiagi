@@ -1,3 +1,4 @@
+from _utils import catch_exception
 
 class CbordController:
 
@@ -12,9 +13,12 @@ class CbordController:
 
     # Actions ----------------------------------------------------------------------------
 
-
+    
+    @catch_exception
     def select_cbord(self, action_def, args):
-        index = int(args) - 1 
+        self.parent.log(args)
+        index = int(args[-1]) - 1 
+        self.parent.log(index)
         self.selected_input = self.inputs[index]
         self._update_selection()
         self.parent._update_data()
@@ -37,10 +41,14 @@ class CbordController:
 
 
     def _update_selection(self):
-        for input in self.inputs:
+        for track in self.inputs:
             for chain in track.devices[0].chains:
                 if chain.name == 'CBORD':
                     if track is self.selected_input:
                         chain.mute = 0
                     else:
                         chain.mute = 1
+
+
+    def log(self, msg):
+        self.parent.log(msg)

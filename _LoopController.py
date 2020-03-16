@@ -236,3 +236,7 @@ class LoopController:
                 for i in range(5,9):
                     self.parent.log(track.devices[0].parameters[i].value)
                     track.devices[0].parameters[i].value = self.parent.saved_params[track.name][i]
+
+
+    def log(self, msg):
+        self.parent.log(msg)

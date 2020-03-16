@@ -66,3 +66,7 @@ class FXController:
     def _reset_fx_params(self, device):
         for i in range(1,9):
             device.parameters[i].value = self.parent.saved_params[device.name][i]   
+
+
+    def log(self, msg):
+        self.parent.log(msg)

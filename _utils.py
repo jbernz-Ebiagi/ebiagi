@@ -8,5 +8,5 @@ def catch_exception(f):
         try:
             return f(*args, **kwargs)
         except:
-            args[0].canonical_parent.log_message(traceback.format_exc())
+            args[0].log(traceback.format_exc())
     return func

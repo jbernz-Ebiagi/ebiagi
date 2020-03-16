@@ -44,3 +44,7 @@ class ClipController:
             if scene_name.upper() in scene.name:
                 return scene
         return False
+
+    
+    def log(self, msg):
+        self.parent.log(msg)
