@@ -14,6 +14,7 @@ class ClipController:
     def select_clip(self, action_def, args):
         clip_name = args.upper()
         scene = self._get_clip_scene(clip_name)
+        self.parent.song().view.selected_scene = scene
         scene.fire()
         self._select_clip(scene)
 
@@ -33,6 +34,9 @@ class ClipController:
 
 
     def _deselect_clip(self, scene):
+        for clip_slot in scene.clip_slots:
+            if clip_slot.has_clip and clip_slot.clip.name == 'GATE':
+                clip_slot.stop()
         self.held_clips.remove(scene)
         if self.parent._total_held() > 0:
             self.parent._update_data()

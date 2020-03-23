@@ -29,13 +29,22 @@ class LoopController:
         key_name = args
         scene = self._get_loop_scene(key_name)
         if(scene is not None):
+            self.parent.song().view.selected_scene = scene
+            #if empty, create a loop
             if(scene.name == 'loop[]'):
                 self._create_loop(scene, key_name)
             else:
-                is_playing = self._select_loop(scene)
-                if not is_playing:
-                    self.parent._trigger_scene(scene)
-                    self.parent._select_scene(scene)
+                for clip_slot in scene.clip_slots:
+                    #if recording, finish the record
+                    if clip_slot.has_clip and clip_slot.is_recording:
+                        self._finish_record(scene)
+                        return
+                    #if playing, select the loop
+                    if clip_slot.has_clip and clip_slot.is_playing:
+                        self._select_loop(scene)
+                        return
+                #if stopped, fire the loop
+                self.parent._trigger_scene(scene)
         else:
             self.parent.log('exceeded maximum loop count')
 
@@ -54,6 +63,7 @@ class LoopController:
                 self._select_loop(scene)
 
 
+    #can be optimized
     def deselect_all_loops(self, action_def, args):
         scenes = [x for x in self.held_loops if 'loop' in x.name]
         if(len(scenes) > 0):
@@ -124,23 +134,40 @@ class LoopController:
 
 
     def _select_loop(self, scene):
-        self.parent.log('select')
-        for clip_slot in scene.clip_slots:
-            if clip_slot.has_clip and clip_slot.is_recording:
-                self._finish_record(scene)
-            if clip_slot.has_clip and clip_slot.is_playing:
-                self.held_loops.add(scene)
-                self.parent._update_data()
-                self.parent._update_selected_instruments()
-                return True
-        return False
+        self.held_loops.add(scene)
+        self.parent._select_fx(self._get_loop_fx_track(scene))
             
 
     def _deselect_loop(self, scene):
-        self.held_loops.remove(scene)
-        if self.parent._total_held() > 0:
-            self.parent._update_data()
-            self.parent._update_selected_instruments()    
+        if scene in self.held_loops:
+            self.held_loops.remove(scene)
+            fx_track = self._get_loop_fx_track(scene)
+            #if another key is selecting the same fx, return
+            for s in self.held_loops:
+                if self._get_loop_fx_track(s) is fx_track:
+                    return
+            self.parent.deselect_fx(fx_track)
+
+
+    #TODO: wrap this in a group method
+    def _get_loop_fx_track(self, scene):
+        i = 0
+        while i < len(scene.clip_slots):
+            if scene.clip_slots[i].is_group_slot:
+                group_track = self.parent.song().tracks[i]        
+                original_fold = group_track.fold_state
+                selected_track = self.parent.song().view.selected_track
+                group_track.fold_state = 1
+                x = 1
+                while self.parent.song().tracks[i+x] and not self.parent.song().tracks[i+x].is_visible:
+                    if self.parent.song().tracks[i+x].name == 'FX' and scene.clip_slots[i].controls_other_clips:
+                        group_track.fold_state = original_fold
+                        self.parent.song().view.selected_track = selected_track
+                        return self.parent.song().tracks[i+x]
+                    x += 1
+                group_track.fold_state = original_fold
+                self.parent.song().view.selected_track = selected_track
+                i = i+x                    
 
 
     def _get_loop_scene(self, key_name):
@@ -172,19 +199,18 @@ class LoopController:
         clip_count = 0
         current_group_index = 0
         i = 0
+        selected_track = self.parent.song().view.selected_track
 
         for clip_slot in scene.clip_slots:
 
-            if clip_slot.is_group_slot:
+            if self.parent.song().tracks[i].name == 'LOOPS':
                 current_group_index = i
 
             if clip_slot.has_clip:
-                clip_slot.clip.select_all_notes()
-
-                if len(clip_slot.clip.get_selected_notes()) > 0:
+                if self.parent._clip_slot_has_notes(clip_slot):
                     clip_count += 1
                     n = current_group_index + 1
-                    while not scene.clip_slots[n].is_group_slot:
+                    while self.parent.song().tracks[n].name == 'LOOP':
                         if not scene.clip_slots[n].has_clip:
                             scene.clip_slots[n].create_clip(1)
                             scene.clip_slots[n].clip.name = "-"
@@ -230,12 +256,12 @@ class LoopController:
 
 
     def _reset_loop_params(self, scene):
-        track_names = self.parent._get_tracks_in_scene(scene)
-        for track in self.parent.song().tracks:
-            if track.name in track_names:
-                for i in range(5,9):
-                    self.parent.log(track.devices[0].parameters[i].value)
-                    track.devices[0].parameters[i].value = self.parent.saved_params[track.name][i]
+        track = self._get_loop_fx_track(scene)
+        parent = self.parent._get_parent(track)
+        self.log(parent.name)
+        self.log(self.parent.saved_params)
+        for i in range(1,9):
+            track.devices[0].parameters[i].value = self.parent.saved_params[parent.name + '_FX'][i]
 
 
     def log(self, msg):
