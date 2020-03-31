@@ -40,7 +40,7 @@ class CbordController:
     def _update_input_list(self):
         self.inputs = []
         for track in self.parent.song().tracks:
-            if track.name == 'MIDI_IN' and track.input_routing_type.display_name == 'ALL_IN':
+            if track.name == 'CTRL_IN' and track.input_routing_type.display_name == 'ALL_IN':
                 self.inputs.append(track)
         if len(self.inputs) > 0:
             self.selected_input = self.inputs[0]

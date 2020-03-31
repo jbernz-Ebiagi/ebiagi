@@ -10,3 +10,8 @@ def catch_exception(f):
         except:
             args[0].log(traceback.format_exc())
     return func
+
+def strip_name_params(name):
+    if name.find('[') != -1:
+        return name[0:name.find('[')]
+    return name

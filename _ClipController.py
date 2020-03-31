@@ -1,46 +1,76 @@
+from _utils import catch_exception
+from threading import Timer
+
 class ClipController:
 
     def __init__(self, GlobalActions):
         self.parent = GlobalActions
         self.parent.add_global_action('select_clip', self.select_clip)
         self.parent.add_global_action('deselect_clip', self.deselect_clip)
-
-        self.held_clips = set([])
+        self.parent.add_global_action('choke', self.choke)
+        self.parent.add_global_action('unchoke', self.unchoke)
 
 
     # Actions ----------------------------------------------------------------------------
 
-
+    @catch_exception
     def select_clip(self, action_def, args):
         clip_name = args.upper()
         scene = self._get_clip_scene(clip_name)
-        self.parent.song().view.selected_scene = scene
-        scene.fire()
         self._select_clip(scene)
 
 
+    @catch_exception
     def deselect_clip(self, action_def, args):
         clip_name = args.upper()
         scene = self._get_clip_scene(clip_name)
         self._deselect_clip(scene)
 
 
+    @catch_exception
+    def choke(self, action_def, args):
+        track_name = args.upper()
+        instr_group = self.parent._get_track_with_name(track_name)
+        self.parent.loop._mute_loops_by_instr(instr_group)
+
+
+    @catch_exception
+    def unchoke(self, action_def, args):
+        track_name = args.upper()
+        instr_group = self.parent._get_track_with_name(track_name)
+        self.parent.loop._unmute_loops_by_instr(instr_group)
+
+
     # Utils ------------------------------------------------------------------------------
 
     def _select_clip(self, scene):
-        self.held_clips.add(scene)
-        self.parent._update_data()
-        self.parent._update_selected_instruments()
+        clip_tracks = self.parent._get_tracks_of_scene(scene)
+        if len(clip_tracks) > 0:
+            clip_group = self.parent._get_parent(clip_tracks[0])
+            instr_group = self.parent._get_parent(clip_group)
+            ctrl_in = self.parent._get_child_with_name(instr_group, 'CTRL_IN')
+            self.parent._select_instrument(ctrl_in)
+
+            self.parent.song().view.selected_scene = scene
+
+            scene.fire()
+
+            for clip_slot in scene.clip_slots:
+                if clip_slot.has_clip and 'CHOKE' in clip_slot.clip.name:
+                    self.parent.loop._mute_loops_by_instr(instr_group)
 
 
     def _deselect_clip(self, scene):
-        for clip_slot in scene.clip_slots:
-            if clip_slot.has_clip and clip_slot.clip.name == 'GATE':
-                clip_slot.stop()
-        self.held_clips.remove(scene)
-        if self.parent._total_held() > 0:
-            self.parent._update_data()
-            self.parent._update_selected_instruments()    
+        clip_tracks = self.parent._get_tracks_of_scene(scene)
+        if len(clip_tracks) > 0:
+            clip_group = self.parent._get_parent(clip_tracks[0])
+            instr_group = self.parent._get_parent(clip_group)
+
+            for clip_slot in scene.clip_slots:
+                if clip_slot.has_clip and 'GATE' in clip_slot.clip.name:
+                    clip_slot.stop()
+                if clip_slot.has_clip and 'CHOKE' in clip_slot.clip.name and not 'unchoke' in clip_slot.clip.name:
+                    self.parent.loop._unmute_loops_by_instr(instr_group)
 
 
     def _get_clip_scene(self, scene_name):

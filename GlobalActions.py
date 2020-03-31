@@ -1,6 +1,7 @@
 from threading import Timer
 from ClyphX_Pro.clyphx_pro.UserActionsBase import UserActionsBase
 from _utils import catch_exception
+from _utils import strip_name_params
 
 from _LoopController import LoopController
 from _ClipController import ClipController
@@ -55,17 +56,20 @@ class GlobalActions(UserActionsBase):
 
 
     def _deselect_fx(self, track):
-        self.selected_fx.remove(track)
-        self._update_selection()
+        if len(self.selected_fx) > 1:
+            self.selected_fx.remove(track)
+            self._update_selection()
+        else:
+            self.selected_fx.remove(track)
 
 
     def _update_selection(self):
         for track in self.song().tracks:
 
-            if track.name == 'MIDI_IN':
+            if track.name == 'CTRL_IN':
                 if track == self.selected_instrument:
                     track.arm = 1
-                    instrument_track = self._get_child_with_name(self._get_parent(track), 'INSTR')
+                    instrument_track = self._get_child_with_name(self._get_parent(self._get_parent(track)), 'INSTR')
                     self.song().view.selected_track = instrument_track
                 else:
                     track.arm = 0
@@ -94,7 +98,6 @@ class GlobalActions(UserActionsBase):
         self.song().set_data('selected_fx_groups', selected_fx_groups)
                     
 
-    #loop tracks
     def _get_tracks_of_scene(self, scene):
         tracks = []
         i = 0
@@ -107,7 +110,7 @@ class GlobalActions(UserActionsBase):
 
     def _get_track_with_name(self, name):
         for track in self.song().tracks:
-            if track.name == name:
+            if strip_name_params(track.name) == name:
                 return track
         return False
 
@@ -191,17 +194,31 @@ class GlobalActions(UserActionsBase):
 
         self.virtual_tree = tree
 
+        for track in self.song().tracks:
+            if track.is_foldable:
+                track.fold_state = 1
+
     
     def _get_child_with_name(self, track, name):
         for vtrack in self.virtual_tree:
             if track == vtrack['track']:
                 if vtrack['children']:
                     for ctrack in vtrack['children']:
-                        if ctrack.name == name:
+                        if strip_name_params(ctrack.name) == name:
                             return ctrack
         return None
 
+
+    def _get_children(self, track):
+        children = []
+        for vtrack in self.virtual_tree:
+            if track == vtrack['track']:
+                if vtrack['children']:
+                    for ctrack in vtrack['children']:
+                        children.append(ctrack)
+        return children
     
+
     def _get_parent(self, track):
         for vtrack in self.virtual_tree:
             if track == vtrack['track']:

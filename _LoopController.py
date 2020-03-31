@@ -74,7 +74,7 @@ class LoopController:
     def clear_loop(self, action_def, args):
         key_name = args
         scene = self._get_loop_scene(key_name)
-        if(scene and scene.name != 'loop[]'):
+        if(scene and scene.name != 'loop[]' and not 'nd_' in scene.name):
             self._clear_loop(scene)
 
 
@@ -146,7 +146,7 @@ class LoopController:
             for s in self.held_loops:
                 if self._get_loop_fx_track(s) is fx_track:
                     return
-            self.parent.deselect_fx(fx_track)
+            self.parent._deselect_fx(fx_track)
 
 
     #TODO: wrap this in a group method
@@ -199,18 +199,20 @@ class LoopController:
         clip_count = 0
         current_group_index = 0
         i = 0
+        multi = False
         selected_track = self.parent.song().view.selected_track
 
         for clip_slot in scene.clip_slots:
 
-            if self.parent.song().tracks[i].name == 'LOOPS':
+            if 'LOOPS' in self.parent.song().tracks[i].name:
                 current_group_index = i
+                multi = 'MULTI' in self.parent.song().tracks[i].name
 
             if clip_slot.has_clip:
                 if self.parent._clip_slot_has_notes(clip_slot):
                     clip_count += 1
                     n = current_group_index + 1
-                    while self.parent.song().tracks[n].name == 'LOOP':
+                    while self.parent.song().tracks[n].name == 'LOOP' and not multi:
                         if not scene.clip_slots[n].has_clip:
                             scene.clip_slots[n].create_clip(1)
                             scene.clip_slots[n].clip.name = "-"
@@ -233,7 +235,8 @@ class LoopController:
             if clip_slot.has_clip:
                 if clip_slot.clip.name == "-":
                     clip_slot.has_stop_button = 0
-                clip_slot.delete_clip()
+                if not clip_slot.clip.name == "+":
+                    clip_slot.delete_clip()
         scene.name = 'loop[]'
 
 
@@ -263,6 +266,20 @@ class LoopController:
         for i in range(1,9):
             track.devices[0].parameters[i].value = self.parent.saved_params[parent.name + '_FX'][i]
 
+    
+    def _mute_loops_by_instr(self, track):
+        loop_group = self.parent._get_child_with_name(track, 'LOOPS')
+        loops = self.parent._get_children(loop_group)
+        for loop in loops:
+            loop.mute = 1
+
+
+    def _unmute_loops_by_instr(self, track):
+        loop_group = self.parent._get_child_with_name(track, 'LOOPS')
+        loops = self.parent._get_children(loop_group)
+        for loop in loops:
+            loop.mute = 0
+            
 
     def log(self, msg):
         self.parent.log(msg)
