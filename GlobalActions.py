@@ -5,7 +5,7 @@ from _utils import strip_name_params
 
 from _LoopController import LoopController
 from _ClipController import ClipController
-from _FXController import FXController
+from _GlobalFXController import GlobalFXController
 from _CbordController import CbordController
 
 
@@ -16,7 +16,7 @@ class GlobalActions(UserActionsBase):
 
         self.loop = LoopController(self)
         self.clip = ClipController(self)
-        self.fx = FXController(self)
+        self.gfx = GlobalFXController(self)
         self.cbord = CbordController(self)
 
         self.selected_instrument = None
@@ -28,7 +28,7 @@ class GlobalActions(UserActionsBase):
         self._update_data()
 
         self.saved_params = {}
-        Timer(0.5, self._save_current_params).start()
+        Timer(1.5, self._save_current_params).start()
         
 
     # Actions ----------------------------------------------------------------------------
@@ -47,12 +47,14 @@ class GlobalActions(UserActionsBase):
         self.selected_instrument = track
         self.selected_fx = set([])
         self._update_selection()
+        self.show_audio_swift()
 
 
     def _select_fx(self, track):
         self.selected_instrument = None
         self.selected_fx.add(track)
         self._update_selection()
+        self.show_audio_swift()
 
 
     def _deselect_fx(self, track):
@@ -66,6 +68,7 @@ class GlobalActions(UserActionsBase):
     def _update_selection(self):
         for track in self.song().tracks:
 
+            #Instr
             if track.name == 'CTRL_IN':
                 if track == self.selected_instrument:
                     track.arm = 1
@@ -75,7 +78,8 @@ class GlobalActions(UserActionsBase):
                     track.arm = 0
 
 
-            if track.name == 'FX':
+            #Loop, GFX
+            if track.name == 'FX' or 'GFX' in track.name:
                 is_selected = False
                 if track in self.selected_fx:
                     track.arm = 1
@@ -88,13 +92,13 @@ class GlobalActions(UserActionsBase):
 
     def _update_data(self):
         if self.selected_instrument:
-            self.song().set_data('selected_instrument_group', self._get_parent(self.selected_instrument).name)
+            self.song().set_data('selected_instrument_group', self._get_parent(self._get_parent(self.selected_instrument)).name)
         else:
             self.song().set_data('selected_instrument_group', None)
 
         selected_fx_groups = []
         for track in self.selected_fx:
-            selected_fx_groups.append(self._get_parent(self._get_parent(track)).name)
+            selected_fx_groups.append(self._get_parent(track).name)
         self.song().set_data('selected_fx_groups', selected_fx_groups)
                     
 
@@ -116,22 +120,23 @@ class GlobalActions(UserActionsBase):
 
 
     def _clip_slot_has_notes(self, clip_slot):
-        if clip_slot.has_clip:
+        if clip_slot.has_clip and clip_slot.clip.is_midi_clip:
             clip_slot.clip.select_all_notes()
             if len(clip_slot.clip.get_selected_notes()) > 0:
                 return True
         return False
 
 
+    @catch_exception
     def _save_current_params(self):
         current_params = {}
         for track in self.song().tracks:
-            if track.name == 'INSTR' or track.name == 'FX':
-                instr_name = self._get_parent(track).name
+            if track.name == 'INSTR' or track.name == 'FX' or 'GFX' in track.name:
+                group_name = self._get_parent(track).name
                 for device in track.devices:
-                    current_params[instr_name + '_' + track.name] = {}
+                    current_params[group_name + '_' + track.name] = {}
                     for i in range(1,9):
-                        current_params[instr_name + '_' + track.name][i] = device.parameters[i].value
+                        current_params[group_name + '_' + track.name][i] = device.parameters[i].value
         self.saved_params = current_params
 
 
@@ -154,11 +159,13 @@ class GlobalActions(UserActionsBase):
                 n = i + 1
                 children = []
                 parent = None
+                #second level group
                 if track.is_grouped:
                     parent = current_scope[0]
                     while n < len(self.song().tracks) and not self.song().tracks[n].is_visible:
                         children.append(self.song().tracks[n])
                         n += 1
+                #top level group
                 else:
                     while n < len(self.song().tracks) and self.song().tracks[n].is_grouped:
                         if self.song().tracks[n].is_visible:
@@ -180,6 +187,8 @@ class GlobalActions(UserActionsBase):
             else:
                 if not track.is_grouped:
                     current_scope = []
+                if track.is_grouped and track.is_visible and len(current_scope) == 2:
+                    current_scope.pop(1)
                 if current_scope[-1]:
                     parent = current_scope[-1]
                 else:
@@ -223,6 +232,16 @@ class GlobalActions(UserActionsBase):
         for vtrack in self.virtual_tree:
             if track == vtrack['track']:
                 return vtrack['parent']
+
+
+    def show_audio_swift(self):
+        self.clyphx_trigger("""
+            SHOWDEV ;
+            KEY ESC ;
+            KEY ALT DN ;
+            KEY STRIKE ;
+            KEY FLUSH ;        
+        """)
 
 
     def clyphx_trigger(self, command):

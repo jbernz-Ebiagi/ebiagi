@@ -13,5 +13,5 @@ def catch_exception(f):
 
 def strip_name_params(name):
     if name.find('[') != -1:
-        return name[0:name.find('[')]
+        return name[0:name.find('[')].strip()
     return name

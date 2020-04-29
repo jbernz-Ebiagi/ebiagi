@@ -48,7 +48,7 @@ class ClipController:
         if len(clip_tracks) > 0:
             clip_group = self.parent._get_parent(clip_tracks[0])
             instr_group = self.parent._get_parent(clip_group)
-            ctrl_in = self.parent._get_child_with_name(instr_group, 'CTRL_IN')
+            ctrl_in = self.parent._get_child_with_name(self.parent._get_child_with_name(instr_group, 'ROUTING'), 'CTRL_IN')
             self.parent._select_instrument(ctrl_in)
 
             self.parent.song().view.selected_scene = scene
@@ -67,10 +67,10 @@ class ClipController:
             instr_group = self.parent._get_parent(clip_group)
 
             for clip_slot in scene.clip_slots:
-                if clip_slot.has_clip and 'GATE' in clip_slot.clip.name:
-                    clip_slot.stop()
                 if clip_slot.has_clip and 'CHOKE' in clip_slot.clip.name and not 'unchoke' in clip_slot.clip.name:
                     self.parent.loop._unmute_loops_by_instr(instr_group)
+                if clip_slot.has_clip and 'GATE' in clip_slot.clip.name:
+                    clip_slot.stop()
 
 
     def _get_clip_scene(self, scene_name):

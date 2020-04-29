@@ -48,7 +48,7 @@ class LoopController:
         else:
             self.parent.log('exceeded maximum loop count')
 
-
+    @catch_exception
     def deselect_loop(self, action_def, args):
         key_name = args
         scene = self._get_loop_scene(key_name)
@@ -162,7 +162,6 @@ class LoopController:
                 while self.parent.song().tracks[i+x] and not self.parent.song().tracks[i+x].is_visible:
                     if self.parent.song().tracks[i+x].name == 'FX' and scene.clip_slots[i].controls_other_clips:
                         group_track.fold_state = original_fold
-                        self.parent.song().view.selected_track = selected_track
                         return self.parent.song().tracks[i+x]
                     x += 1
                 group_track.fold_state = original_fold
@@ -195,7 +194,6 @@ class LoopController:
 
     
     def _finish_record(self, scene):
-        self.parent.log('finish')
         clip_count = 0
         current_group_index = 0
         i = 0
@@ -261,8 +259,6 @@ class LoopController:
     def _reset_loop_params(self, scene):
         track = self._get_loop_fx_track(scene)
         parent = self.parent._get_parent(track)
-        self.log(parent.name)
-        self.log(self.parent.saved_params)
         for i in range(1,9):
             track.devices[0].parameters[i].value = self.parent.saved_params[parent.name + '_FX'][i]
 
