@@ -48,8 +48,6 @@ class ClipController:
         if len(clip_tracks) > 0:
             clip_group = self.parent._get_parent(clip_tracks[0])
             instr_group = self.parent._get_parent(clip_group)
-            ctrl_in = self.parent._get_child_with_name(self.parent._get_child_with_name(instr_group, 'ROUTING'), 'CTRL_IN')
-            self.parent._select_instrument(ctrl_in)
 
             self.parent.song().view.selected_scene = scene
 
@@ -58,6 +56,9 @@ class ClipController:
             for clip_slot in scene.clip_slots:
                 if clip_slot.has_clip and 'CHOKE' in clip_slot.clip.name:
                     self.parent.loop._mute_loops_by_instr(instr_group)
+                if clip_slot.has_clip and 'SELECT' in clip_slot.clip.name:
+                    as_in = self.parent._get_child_with_name(self.parent._get_child_with_name(instr_group, 'ROUTING'), 'AS_IN')
+                    self.parent._assign_as(as_in)
 
 
     def _deselect_clip(self, scene):

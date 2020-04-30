@@ -19,13 +19,11 @@ class GlobalActions(UserActionsBase):
         self.gfx = GlobalFXController(self)
         self.cbord = CbordController(self)
 
-        self.selected_instrument = None
-        self.selected_fx = set([])
+        self.selected_cbord_instr = None
+        self.selected_as_fx = set([])
 
         self.virtual_tree = []
         self._update_virtual_tree()
-
-        self._update_data()
 
         self.saved_params = {}
         Timer(1.5, self._save_current_params).start()
@@ -43,63 +41,38 @@ class GlobalActions(UserActionsBase):
         scene.fire()
 
 
-    def _select_instrument(self, track):
-        self.selected_instrument = track
-        self.selected_fx = set([])
+    def _assign_cbord(self, track):
+        self.selected_cbord_instr = track
+        self._update_selection()
+
+
+    def _assign_as(self, track):
+        self.selected_as_fx.add(track)
+
+        self.log(track)
+
+        instrument_track = self._get_child_with_name(self._get_parent(self._get_parent(track)), 'INSTR')
+        self.song().view.selected_track = instrument_track
+
         self._update_selection()
         self.show_audio_swift()
-
-
-    def _select_fx(self, track):
-        self.selected_instrument = None
-        self.selected_fx.add(track)
-        self._update_selection()
-        self.show_audio_swift()
-
-
-    def _deselect_fx(self, track):
-        if len(self.selected_fx) > 1:
-            self.selected_fx.remove(track)
-            self._update_selection()
-        else:
-            self.selected_fx.remove(track)
 
 
     def _update_selection(self):
         for track in self.song().tracks:
-
-            #Instr
-            if track.name == 'CTRL_IN':
-                if track == self.selected_instrument:
+            if track.name == 'CBORD_IN' or track.name == 'AS_IN':
+                if track == self.selected_cbord_instr or track in self.selected_as_fx:
                     track.arm = 1
-                    instrument_track = self._get_child_with_name(self._get_parent(self._get_parent(track)), 'INSTR')
-                    self.song().view.selected_track = instrument_track
                 else:
                     track.arm = 0
 
 
-            #Loop, GFX
-            if track.name == 'FX' or 'GFX' in track.name:
-                is_selected = False
-                if track in self.selected_fx:
-                    track.arm = 1
-                    self.song().view.selected_track = track
-                else:
-                    track.arm = 0
-
-        self._update_data()
-
-
-    def _update_data(self):
-        if self.selected_instrument:
-            self.song().set_data('selected_instrument_group', self._get_parent(self._get_parent(self.selected_instrument)).name)
+    def _deselect_as(self, track):
+        if len(self.selected_as_fx) > 1:
+            self.selected_as_fx.remove(track)
+            self._update_selection()
         else:
-            self.song().set_data('selected_instrument_group', None)
-
-        selected_fx_groups = []
-        for track in self.selected_fx:
-            selected_fx_groups.append(self._get_parent(track).name)
-        self.song().set_data('selected_fx_groups', selected_fx_groups)
+            self.selected_as_fx.remove(track) 
                     
 
     def _get_tracks_of_scene(self, scene):
@@ -131,7 +104,7 @@ class GlobalActions(UserActionsBase):
     def _save_current_params(self):
         current_params = {}
         for track in self.song().tracks:
-            if track.name == 'INSTR' or track.name == 'FX' or 'GFX' in track.name:
+            if track.name == 'INSTR' or 'GFX' in track.name:
                 group_name = self._get_parent(track).name
                 for device in track.devices:
                     current_params[group_name + '_' + track.name] = {}

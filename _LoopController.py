@@ -135,38 +135,28 @@ class LoopController:
 
     def _select_loop(self, scene):
         self.held_loops.add(scene)
-        self.parent._select_fx(self._get_loop_fx_track(scene))
+        as_track = self._get_loop_as_track(scene)
+        if as_track:
+            self.parent._assign_as(as_track)
             
 
     def _deselect_loop(self, scene):
         if scene in self.held_loops:
             self.held_loops.remove(scene)
-            fx_track = self._get_loop_fx_track(scene)
+            as_track = self._get_loop_as_track(scene)
             #if another key is selecting the same fx, return
             for s in self.held_loops:
-                if self._get_loop_fx_track(s) is fx_track:
+                if self._get_loop_as_track(s) is as_track:
                     return
-            self.parent._deselect_fx(fx_track)
+            self.parent._deselect_as(as_track)
 
 
-    #TODO: wrap this in a group method
-    def _get_loop_fx_track(self, scene):
-        i = 0
-        while i < len(scene.clip_slots):
-            if scene.clip_slots[i].is_group_slot:
-                group_track = self.parent.song().tracks[i]        
-                original_fold = group_track.fold_state
-                selected_track = self.parent.song().view.selected_track
-                group_track.fold_state = 1
-                x = 1
-                while self.parent.song().tracks[i+x] and not self.parent.song().tracks[i+x].is_visible:
-                    if self.parent.song().tracks[i+x].name == 'FX' and scene.clip_slots[i].controls_other_clips:
-                        group_track.fold_state = original_fold
-                        return self.parent.song().tracks[i+x]
-                    x += 1
-                group_track.fold_state = original_fold
-                self.parent.song().view.selected_track = selected_track
-                i = i+x                    
+    def _get_loop_as_track(self, scene):
+        loop_tracks = self.parent._get_tracks_of_scene(scene)
+        loop_group = self.parent._get_parent(loop_tracks[0])
+        instr_group = self.parent._get_parent(loop_group)
+        routing_group = self.parent._get_child_with_name(instr_group, 'ROUTING')
+        return self.parent._get_child_with_name(routing_group, 'AS_IN')
 
 
     def _get_loop_scene(self, key_name):

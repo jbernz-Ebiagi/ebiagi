@@ -22,7 +22,7 @@ class CbordController:
         index = int(args[-1]) - 1
         self.log(index)
         self.selected_input = self.inputs[index]
-        self.parent._select_instrument(self.selected_input)
+        self.parent._assign_cbord(self.selected_input)
 
 
     @catch_exception
@@ -41,10 +41,7 @@ class CbordController:
     def _update_input_list(self):
         self.inputs = []
         for track in self.parent.song().tracks:
-            self.log(track.name)
-            self.log(track.input_routing_type.display_name)
-            if track.name == 'CTRL_IN' and track.input_routing_type.display_name == 'ALL_IN':
-                self.log('append input')
+            if track.name == 'CBORD_IN':
                 self.inputs.append(track)
         if len(self.inputs) > 0:
             self.selected_input = self.inputs[0]
