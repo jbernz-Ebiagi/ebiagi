@@ -1,4 +1,5 @@
 from threading import Timer
+from time import clock
 from ClyphX_Pro.clyphx_pro.UserActionsBase import UserActionsBase
 from _utils import catch_exception
 from _utils import strip_name_params
@@ -7,6 +8,7 @@ from _LoopController import LoopController
 from _ClipController import ClipController
 from _GlobalFXController import GlobalFXController
 from _CbordController import CbordController
+from _EnvClipController import EnvClipController
 
 
 class GlobalActions(UserActionsBase):
@@ -18,6 +20,7 @@ class GlobalActions(UserActionsBase):
         self.clip = ClipController(self)
         self.gfx = GlobalFXController(self)
         self.cbord = CbordController(self)
+        self.envClip = EnvClipController(self)
 
         self.selected_cbord_instr = None
         self.selected_as_fx = set([])
@@ -25,13 +28,33 @@ class GlobalActions(UserActionsBase):
         self.virtual_tree = []
         self._update_virtual_tree()
 
-        self.saved_params = {}
-        Timer(1.5, self._save_current_params).start()
+        self.add_global_action('assign_all_as', self.assign_all_as)
+        self.add_global_action('deselect_all_as', self.deselect_all_as)
         
 
     # Actions ----------------------------------------------------------------------------
 
+    @catch_exception
+    def assign_all_as(self, action_def, args):
+        self.log('select all start')
+        self.time = clock()
+        for track in self.song().tracks:
+            if track.name == 'AS_IN' or 'GFX' in track.name:
+                self.selected_as_fx.add(track)
+        self.log('update selection')
+        self.log(clock() - self.time)
+        self._update_selection()
+        self.log('show audio swift')
+        self.log(clock() - self.time)
+        self.show_audio_swift()
+        self.log('finish select all')
+        self.log(clock() - self.time)
 
+
+    #can be optimized
+    @catch_exception
+    def deselect_all_as(self, action_def, args):
+        self.selected_as_fx = set([])
 
 
     # Utils ------------------------------------------------------------------------------
@@ -43,27 +66,40 @@ class GlobalActions(UserActionsBase):
 
     def _assign_cbord(self, track):
         self.selected_cbord_instr = track
+
+        routing_group = self._get_parent(track)
+        as_in = self._get_child_with_name(routing_group, 'AS_IN')
+        self.selected_as_fx.add(as_in)
+
+        self.log(routing_group)
+
+        instrument_track = self._get_child_with_name(self._get_parent(routing_group), 'INSTR')
+        self.song().view.selected_track = instrument_track
+
         self._update_selection()
 
 
     def _assign_as(self, track):
         self.selected_as_fx.add(track)
 
-        self.log(track)
-
-        instrument_track = self._get_child_with_name(self._get_parent(self._get_parent(track)), 'INSTR')
-        self.song().view.selected_track = instrument_track
+        if('GFX' in track.name):
+            self.song().view.selected_track = track
+        else:
+            instrument_track = self._get_child_with_name(self._get_parent(self._get_parent(track)), 'INSTR')
+            self.song().view.selected_track = instrument_track
 
         self._update_selection()
-        self.show_audio_swift()
 
 
     def _update_selection(self):
+        self.log(self.selected_as_fx)
         for track in self.song().tracks:
-            if track.name == 'CBORD_IN' or track.name == 'AS_IN':
+            if track.name == 'CBORD_IN' or track.name == 'AS_IN' or 'GFX' in track.name:
                 if track == self.selected_cbord_instr or track in self.selected_as_fx:
+                    self.log('wee')
                     track.arm = 1
                 else:
+                    self.log('woo')
                     track.arm = 0
 
 
@@ -79,8 +115,9 @@ class GlobalActions(UserActionsBase):
         tracks = []
         i = 0
         for clip_slot in scene.clip_slots:
-            if self._clip_slot_has_notes(clip_slot):
-                tracks.append(self.song().tracks[i])
+            if clip_slot.has_clip:
+                if self._clip_slot_has_notes(clip_slot) or clip_slot.clip.has_envelopes:
+                    tracks.append(self.song().tracks[i])
             i +=1
         return tracks
 
@@ -98,19 +135,6 @@ class GlobalActions(UserActionsBase):
             if len(clip_slot.clip.get_selected_notes()) > 0:
                 return True
         return False
-
-
-    @catch_exception
-    def _save_current_params(self):
-        current_params = {}
-        for track in self.song().tracks:
-            if track.name == 'INSTR' or 'GFX' in track.name:
-                group_name = self._get_parent(track).name
-                for device in track.devices:
-                    current_params[group_name + '_' + track.name] = {}
-                    for i in range(1,9):
-                        current_params[group_name + '_' + track.name][i] = device.parameters[i].value
-        self.saved_params = current_params
 
 
     def _update_virtual_tree(self):

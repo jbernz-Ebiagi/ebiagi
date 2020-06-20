@@ -6,7 +6,7 @@ class CbordController:
     def __init__(self, GlobalActions):
         self.parent = GlobalActions
         self.parent.add_global_action('select_cbord', self.select_cbord)
-        self.parent.add_global_action('reset_cbord_params', self.reset_cbord_params)
+        self.parent.add_global_action('release_select_cbord', self.release_select_cbord)
         
         self.inputs = []
         self.selected_input = None
@@ -20,19 +20,18 @@ class CbordController:
     @catch_exception
     def select_cbord(self, action_def, args):
         index = int(args[-1]) - 1
-        self.log(index)
         self.selected_input = self.inputs[index]
         self.parent._assign_cbord(self.selected_input)
+        self.parent.show_audio_swift()
 
 
     @catch_exception
-    def reset_cbord_params(self, action_def, args):
-        index = int(args[-1]) - 1 
-        group = self.parent._get_parent(self.parent._get_parent(self.inputs[index]))
-        instr = self.parent._get_child_with_name(group, 'INSTR')
-        for i in range(1,9):
-            instr.devices[0].parameters[i].value = self.parent.saved_params[group.name + '_' + instr.name][i]
-
+    def release_select_cbord(self, action_def, args):
+        index = int(args[-1]) - 1
+        selected_input = self.inputs[index]
+        routing_group = self.parent._get_parent(selected_input)
+        as_in = self.parent._get_child_with_name(routing_group, 'AS_IN')
+        self.parent.selected_as_fx.remove(as_in)
 
 
     # Utils ------------------------------------------------------------------------------

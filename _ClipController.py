@@ -59,9 +59,11 @@ class ClipController:
                 if clip_slot.has_clip and 'SELECT' in clip_slot.clip.name:
                     as_in = self.parent._get_child_with_name(self.parent._get_child_with_name(instr_group, 'ROUTING'), 'AS_IN')
                     self.parent._assign_as(as_in)
-
+                    self.parent._deselect_as(as_in)
+  
 
     def _deselect_clip(self, scene):
+        self.log(scene.name)
         clip_tracks = self.parent._get_tracks_of_scene(scene)
         if len(clip_tracks) > 0:
             clip_group = self.parent._get_parent(clip_tracks[0])
@@ -72,6 +74,8 @@ class ClipController:
                     self.parent.loop._unmute_loops_by_instr(instr_group)
                 if clip_slot.has_clip and 'GATE' in clip_slot.clip.name:
                     clip_slot.stop()
+                    if 'GATE:' in clip_slot.clip.name:
+                        self._get_clip_scene(clip_slot.clip.name.split('GATE:',1)[1]).set_fire_button_state(1)
 
 
     def _get_clip_scene(self, scene_name):
