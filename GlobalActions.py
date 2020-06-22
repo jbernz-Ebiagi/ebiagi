@@ -26,7 +26,7 @@ class GlobalActions(UserActionsBase):
         self.selected_as_fx = set([])
 
         self.virtual_tree = []
-        self._update_virtual_tree()
+        # self._update_virtual_tree()
 
         self.add_global_action('assign_all_as', self.assign_all_as)
         self.add_global_action('deselect_all_as', self.deselect_all_as)
