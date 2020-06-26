@@ -17,8 +17,14 @@ class ActionsBase(UserActionsBase):
         self.add_global_action('activate_module', self.activate_module)
         self.add_global_action('select_instrument', self.select_instrument)
         self.add_global_action('deselect_instrument', self.deselect_instrument)
+        self.add_global_action('select_mfx', self.select_mfx)
+        self.add_global_action('deselect_mfx', self.deselect_mfx)
         self.add_global_action('select_input', self.select_input)
         self.add_global_action('deselect_input', self.deselect_input)
+        self.add_global_action('select_loop', self.select_loop)
+        self.add_global_action('deselect_loop', self.deselect_loop)
+        self.add_global_action('stop_loop', self.stop_loop)
+        self.add_global_action('clear_loop', self.clear_loop)
 
         self.socket = Socket(self)
         
@@ -29,7 +35,7 @@ class ActionsBase(UserActionsBase):
 
     @catch_exception
     def activate_module(self, action_def, args):
-        index = int(args) - 1
+        index = int(args[-1]) - 1
         self.set.activate_module(index)
 
     @catch_exception
@@ -43,6 +49,16 @@ class ActionsBase(UserActionsBase):
         self.set.active_module.deselect_instrument(index)
 
     @catch_exception
+    def select_mfx(self, action_def, args):
+        index = int(args[-1]) - 1
+        self.set.active_module.select_mfx(index)
+
+    @catch_exception
+    def deselect_mfx(self, action_def, args):
+        index = int(args[-1]) - 1
+        self.set.active_module.deselect_mfx(index)
+
+    @catch_exception
     def select_input(self, action_def, args):
         self.set.select_input(args.upper())
 
@@ -50,12 +66,31 @@ class ActionsBase(UserActionsBase):
     def deselect_input(self, action_def, args):
         self.set.deselect_input(args.upper())
 
+    @catch_exception    
+    def select_loop(self, action_def, args):
+        self.set.active_module.select_loop(args)
+
+    @catch_exception
+    def deselect_loop(self, action_def, args):
+        self.set.active_module.deselect_loop(args)
+
+    @catch_exception    
+    def stop_loop(self, action_def, args):
+        self.set.active_module.stop_loop(args)
+
+    @catch_exception
+    def clear_loop(self, action_def, args):
+        self.set.active_module.clear_loop(args)
+
     @catch_exception
     def get_state(self):
         if self.set:
 
             instr = []
             inputs = {}
+            modules = []
+            loops = []
+            mfx = []
 
             for midi_input in self.set.midi_inputs:
                 inputs[midi_input] = 'dark'
@@ -76,9 +111,51 @@ class ActionsBase(UserActionsBase):
                     'brightness': brightness, 
                 })
 
+            for module_fx in self.set.active_module.module_fx:
+                brightness = 0
+                if module_fx.track.arm == 1:
+                    brightness = 1
+                mfx.append({
+                    'index': self.set.active_module.module_fx.index(module_fx),
+                    'color': 'white', 
+                    'brightness': brightness, 
+                })
+
+            for module in self.set.modules:
+                color = color_name(module.track.color_index)
+                brightness = 0
+                if module is self.set.active_module:
+                    brightness = 1
+                modules.append({
+                    'index': self.set.modules.index(module),
+                    'color': color, 
+                    'brightness': brightness,
+                }) 
+
+            for key in self.set.active_module.loops:
+                loop = self.set.active_module.loops[key]
+                color = 'red'
+                instruments = loop.get_instruments()
+                if not loop.main_clip_slot.is_recording:
+                    if len(instruments) > 1 or len(loop.get_mfx()) > 0:
+                        color = 'white'
+                    elif len(instruments) == 1:
+                        color = color_name(instruments[0].track.color_index)
+                brightness = 0
+                if loop.main_clip_slot.is_playing:
+                    brightness = 1
+                loops.append({
+                    'key_name': key,
+                    'color': color, 
+                    'brightness': brightness,
+                }) 
+
             return {
                 'instr': instr,
-                'inputs': inputs
+                'inputs': inputs,
+                'modules': modules,
+                'loops': loops,
+                'mfx': mfx
             }
 
         else:

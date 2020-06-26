@@ -1,5 +1,7 @@
 from _Instrument import Instrument
-from _utils import catch_exception, is_module, is_instrument
+from _ModuleFX import ModuleFX
+from _Loop import Loop
+from _utils import catch_exception, is_module, is_instrument, is_module_fx, is_loop_scene, get_loop_key
 
 class Module:
 
@@ -11,29 +13,81 @@ class Module:
         self.instruments = []
         self.held_instruments = set([])
         self.module_fx = []
+        self.held_mfx = set([])
+        self.loops = {}
 
         i = self.set.tracks.index(track) + 1
         while not is_module(self.set.tracks[i]) and self.set.tracks[i].is_grouped:
             if is_instrument(self.set.tracks[i]):
                 instrument = Instrument(self.set.tracks[i], self)
                 self.instruments.append(instrument)
+            if is_module_fx(self.set.tracks[i]):
+                mfx = ModuleFX(self.set.tracks[i], self)
+                self.module_fx.append(mfx)
             i += 1
+
+        s = 0
+        scenes = self.set.scenes
+        while s < len(scenes):
+            if is_loop_scene(scenes[s]):
+                instr_clip_slots = []
+                for instrument in self.instruments:
+                    for clip_track in instrument.clip_tracks:
+                        instr_clip_slots.append({
+                            'clip_slot': clip_track.clip_slots[s],
+                            'instrument': instrument,
+                            'track': clip_track,
+                            'mfx': None
+                        })
+                    for loop_track in instrument.loop_tracks:
+                        instr_clip_slots.append({
+                            'clip_slot': loop_track.clip_slots[s],
+                            'instrument': instrument,
+                            'mfx': None,
+                            'track': loop_track
+                        })
+                for mfx in self.module_fx:
+                    instr_clip_slots.append({
+                        'clip_slot': mfx.track.clip_slots[s],
+                        'mfx': mfx,
+                        'instrument': None,
+                        'track': mfx.track
+                    })
+
+                self.loops[get_loop_key(scenes[s].name)] = Loop(track.clip_slots[s], instr_clip_slots, self)
+            s += 1
 
     def select_instrument(self, index):
         self.held_instruments.add(self.instruments[index])
-        self.arm_instruments()
+        self.arm_instruments_and_mfx()
 
     def deselect_instrument(self, index):
-        self.held_instruments.remove(self.instruments[index])
-        if len(self.held_instruments) > 0:
-            self.arm_instruments()
+        if self.instruments[index] in self.held_instruments:
+            self.held_instruments.remove(self.instruments[index])
+        if len(self.held_instruments) + len(self.held_mfx) > 0:
+            self.arm_instruments_and_mfx()
 
-    def arm_instruments(self):
+    def select_mfx(self, index):
+        self.held_mfx.add(self.module_fx[index])
+        self.arm_instruments_and_mfx()
+
+    def deselect_mfx(self, index):
+        if self.module_fx[index] in self.held_mfx:
+            self.held_mfx.remove(self.module_fx[index])
+        if len(self.held_instruments) + len(self.held_mfx) > 0:
+            self.arm_instruments_and_mfx()
+
+    def arm_instruments_and_mfx(self):
         for instrument in self.instruments:
             if instrument in self.held_instruments:
                 instrument.arm(self.set.held_inputs)
             else:
                 instrument.disarm(self.set.held_inputs)
+        for mfx in self.module_fx:
+            if mfx in self.held_mfx:
+                mfx.arm(self.set.held_inputs)
+            else:
+                mfx.disarm(self.set.held_inputs)
 
     def activate(self):
         self.log('activate ' + self.track.name)
@@ -46,6 +100,18 @@ class Module:
         for instrument in self.instruments:
             instrument.deactivate()
         self.track.fold_state = 1
+
+    def select_loop(self, name):
+        self.loops[name].select()
+
+    def deselect_loop(self, name):
+        self.loops[name].deselect()
+
+    def stop_loop(self, name):
+        self.loops[name].stop()
+
+    def clear_loop(self, name):
+        self.loops[name].clear()
 
     def log(self, msg):
         self.set.log(msg)

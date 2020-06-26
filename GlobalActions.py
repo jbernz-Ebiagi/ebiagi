@@ -16,11 +16,11 @@ class GlobalActions(UserActionsBase):
     @catch_exception
     def create_actions(self):
 
-        self.loop = LoopController(self)
-        self.clip = ClipController(self)
-        self.gfx = GlobalFXController(self)
-        self.cbord = CbordController(self)
-        self.envClip = EnvClipController(self)
+        # self.loop = LoopController(self)
+        # self.clip = ClipController(self)
+        # self.gfx = GlobalFXController(self)
+        # self.cbord = CbordController(self)
+        # self.envClip = EnvClipController(self)
 
         self.selected_cbord_instr = None
         self.selected_as_fx = set([])
@@ -28,8 +28,8 @@ class GlobalActions(UserActionsBase):
         self.virtual_tree = []
         # self._update_virtual_tree()
 
-        self.add_global_action('assign_all_as', self.assign_all_as)
-        self.add_global_action('deselect_all_as', self.deselect_all_as)
+        # self.add_global_action('assign_all_as', self.assign_all_as)
+        # self.add_global_action('deselect_all_as', self.deselect_all_as)
         
 
     # Actions ----------------------------------------------------------------------------

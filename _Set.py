@@ -8,6 +8,7 @@ class Set(UserActionsBase):
     def __init__(self, ActionsBase):
         self.base = ActionsBase
         self.tracks = list(self.base.song().tracks)
+        self.scenes = list(self.base.song().scenes)
         self.modules = []
         self.active_module = None
 

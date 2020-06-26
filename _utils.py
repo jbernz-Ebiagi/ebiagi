@@ -25,6 +25,9 @@ def is_midi_input(track, midi_input_names):
 def is_instrument(track):
     return track.name.startswith('I[')
 
+def is_module_fx(track):
+    return track.name.startswith('MFX')
+
 def is_cbord_in(track):
     return track.name == 'CBORD_IN'
 
@@ -41,7 +44,29 @@ def is_instr(track):
     return track.name == 'INSTR'
 
 def is_loop_track(track):
-    return track.name == 'LOOP' 
+    return track.name == 'LOOP'
+
+def is_loop_scene(scene):
+    return 'loop' in scene.name
+
+def index_of_loop_scene(name, scenes):
+    i = 0
+    for scene in scenes:
+        if 'loop[' + name + ']' == scene.name:
+            return i
+
+def is_locked(clip):
+    return 'lock' in clip.name
+
+def is_empty_clip(clip):
+    if clip.is_midi_clip:
+        clip.select_all_notes()
+        if len(clip.get_selected_notes()) > 0 or clip.has_envelopes:
+            return False
+    return True
+
+def get_loop_key(name):
+    return name[len('loop['):-len(']')]
 
 color_index_map = {
     9: 'blue',
