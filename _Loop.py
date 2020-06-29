@@ -57,7 +57,8 @@ class Loop:
         for i in self.instr_clip_slots:
             clip_slot = i['clip_slot']
             if clip_slot.has_clip:
-                if not is_empty_clip(clip_slot.clip):
+                if (clip_slot.clip.is_midi_clip and not is_empty_clip(clip_slot.clip)) or \
+                (clip_slot.clip.is_audio_clip and i['instrument'].get_input('LINE').arm == 1):
                     clip_slot.fire()
                     clip_count += 1
                 else:
@@ -67,19 +68,19 @@ class Loop:
             self.clear()
 
     def get_instruments(self):
-        instruments = []
+        instruments = set([])
         for i in self.instr_clip_slots:
             if i['clip_slot'].has_clip:
                 if not is_empty_clip(i['clip_slot'].clip) and i['instrument']:
-                    instruments.append(i['instrument'])
+                    instruments.add(i['instrument'])
         return instruments
 
     def get_mfx(self):
-        mfx = []
+        mfx = set([])
         for i in self.instr_clip_slots:
             if i['clip_slot'].has_clip:
                 if not is_empty_clip(i['clip_slot'].clip) and i['mfx']:
-                    mfx.append(i['mfx'])
+                    mfx.add(i['mfx'])
         return mfx
 
     def is_locked(self):

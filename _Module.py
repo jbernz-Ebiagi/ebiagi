@@ -110,8 +110,20 @@ class Module:
     def stop_loop(self, name):
         self.loops[name].stop()
 
+    def stop_all_loops(self):
+        for loop in self.loops:
+            self.loops[loop].stop()
+
     def clear_loop(self, name):
         self.loops[name].clear()
+
+    def clear_all_loops(self):
+        for loop in self.loops:
+            self.loops[loop].clear()
+
+    def toggle_input(self, name):
+        for instrument in self.instruments:
+            instrument.toggle_input(name)
 
     def log(self, msg):
         self.set.log(msg)

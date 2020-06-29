@@ -16,6 +16,7 @@ class Set(UserActionsBase):
 
         #TODO make inputs dynamic
         self.midi_inputs = ['CBORD', 'AS', 'NANOK']
+        self.audio_inputs = ['LINE']
         self.held_inputs = set([])
 
         for track in self.tracks:
@@ -28,6 +29,8 @@ class Set(UserActionsBase):
     def activate_module(self, index):
         if self.modules[index]:
             if self.modules[index] != self.active_module:
+                if self.active_module:
+                    self.active_module.stop_all_loops()
                 for module in self.modules:
                     module.deactivate()
                 self.modules[index].activate()
@@ -42,6 +45,13 @@ class Set(UserActionsBase):
 
     def deselect_input(self, name):
         self.held_inputs.remove(name)
+
+    def toggle_input(self, name):
+        self.active_module.toggle_input(name)
+
+    def clear_module(self, index):
+        if self.modules[index]:
+            self.modules[index].clear_all_loops()
 
     def log(self, message):
         self.base.canonical_parent.log_message(message)

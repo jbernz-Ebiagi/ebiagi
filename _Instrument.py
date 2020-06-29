@@ -1,4 +1,4 @@
-from _utils import catch_exception, is_module, is_instrument, is_midi_input, is_instr, is_loop_track, is_clip_track
+from _utils import catch_exception, is_module, is_instrument, is_midi_input, is_audio_input, is_instr, is_loop_track, is_clip_track
 
 class Instrument:
 
@@ -8,6 +8,7 @@ class Instrument:
         self.track = track
 
         self.midi_inputs = []
+        self.audio_inputs = []
         self.nanok_in = None
         self.clip_tracks = []
         self.loop_tracks= []
@@ -17,6 +18,8 @@ class Instrument:
         while not is_module(tracks[i]) and not is_instrument(tracks[i]) and tracks[i].is_grouped:
             if is_midi_input(tracks[i], self.module.set.midi_inputs):
                 self.midi_inputs.append(tracks[i])
+            if is_audio_input(tracks[i], self.module.set.audio_inputs):
+                self.audio_inputs.append(tracks[i])
             if is_instr(tracks[i]):
                 self.instr = tracks[i]
             if is_clip_track(tracks[i]):
@@ -26,10 +29,15 @@ class Instrument:
             i += 1
 
     def get_input(self, input_name):
-        for track in self.midi_inputs:
+        for track in self.midi_inputs + self.audio_inputs:
             if input_name + '_IN' == track.name:
                 return track
         return False
+
+    def toggle_input(self, input_name):
+        for track in self.midi_inputs + self.audio_inputs:
+            if input_name + '_IN' == track.name:
+                track.arm = 0 if track.arm else 1
 
     def arm(self, input_list):
         for track in self.midi_inputs:
@@ -43,11 +51,13 @@ class Instrument:
 
     def activate(self):
         for loop_track in self.loop_tracks:
-            loop_track.arm = 1
+            if loop_track.can_be_armed:
+                loop_track.arm = 1
 
     def deactivate(self):
         for loop_track in self.loop_tracks:
-            loop_track.arm = 0
+            if loop_track.can_be_armed:
+                loop_track.arm = 0
 
     def log(self, msg):
         self.module.log(msg)

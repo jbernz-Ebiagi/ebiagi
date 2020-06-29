@@ -20,7 +20,10 @@ def is_module(track):
     return track.name.startswith('M[')
 
 def is_midi_input(track, midi_input_names):
-    return track.name.replace('_IN','') in midi_input_names
+    return track.name.replace('_IN','') in midi_input_names and track.has_midi_output
+
+def is_audio_input(track, audio_input_names):
+    return track.name.replace('_IN','') in audio_input_names and track.has_audio_output
 
 def is_instrument(track):
     return track.name.startswith('I[')
@@ -63,6 +66,8 @@ def is_empty_clip(clip):
         clip.select_all_notes()
         if len(clip.get_selected_notes()) > 0 or clip.has_envelopes:
             return False
+    if clip.is_audio_clip:
+        return False
     return True
 
 def get_loop_key(name):
