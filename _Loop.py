@@ -14,6 +14,7 @@ class Loop:
     def select(self):
         instruments = self.get_instruments()
         mfx = self.get_mfx()
+        is_locked = self.is_locked()
         if self.main_clip_slot.is_recording:
             self.finish_record()
         elif self.main_clip_slot.is_playing:
@@ -22,14 +23,18 @@ class Loop:
         else:
             for i in self.instr_clip_slots:
                 clip_slot = i['clip_slot']
+                #Don't record if loop is locked
+                if is_locked and not clip_slot.has_clip:
+                    continue
                 #Don't record if it will stop another clip
-                if not clip_slot.has_clip and clip_slot.has_stop_button and i['track'].playing_slot_index > -1:
+                elif not clip_slot.has_clip and clip_slot.has_stop_button and i['track'].playing_slot_index > -1 and i['track'].has_midi_output:
                     clip_slot.create_clip(1)
                 else:
+                    #multi clip loop (hold insturment to get one part of it)
                     if len(instruments) + len(mfx) <= 1 or \
                     len(self.module.held_instruments) + len(self.module.held_mfx) == 0 or \
                     i['instrument'] in self.module.held_instruments or \
-                    i['mfx'] in self.module.held_mfx: #multi clip loop
+                    i['mfx'] in self.module.held_mfx: 
                         i['clip_slot'].fire()
 
     def deselect(self):
@@ -58,7 +63,7 @@ class Loop:
             clip_slot = i['clip_slot']
             if clip_slot.has_clip:
                 if (clip_slot.clip.is_midi_clip and not is_empty_clip(clip_slot.clip)) or \
-                (clip_slot.clip.is_audio_clip and i['instrument'].get_input('LINE').arm == 1):
+                (clip_slot.clip.is_audio_clip and (not i['instrument'].get_input('LINE') or i['instrument'].get_input('LINE').arm == 1)):
                     clip_slot.fire()
                     clip_count += 1
                 else:
