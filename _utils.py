@@ -31,6 +31,9 @@ def is_instrument(track):
 def is_module_fx(track):
     return track.name.startswith('MFX')
 
+def is_gfx(track):
+    return track.name.startswith('GFX')
+
 def is_cbord_in(track):
     return track.name == 'CBORD_IN'
 
@@ -72,6 +75,9 @@ def is_empty_clip(clip):
 
 def get_loop_key(name):
     return name[len('loop['):-len(']')]
+
+def is_record(track):
+    return track.name == 'RECORD'
 
 color_index_map = {
     9: 'blue',

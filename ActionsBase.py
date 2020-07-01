@@ -19,6 +19,8 @@ class ActionsBase(UserActionsBase):
         self.add_global_action('deselect_instrument', self.deselect_instrument)
         self.add_global_action('select_mfx', self.select_mfx)
         self.add_global_action('deselect_mfx', self.deselect_mfx)
+        self.add_global_action('select_gfx', self.select_gfx)
+        self.add_global_action('deselect_gfx', self.deselect_gfx)
         self.add_global_action('select_input', self.select_input)
         self.add_global_action('deselect_input', self.deselect_input)
         self.add_global_action('select_loop', self.select_loop)
@@ -28,6 +30,9 @@ class ActionsBase(UserActionsBase):
         self.add_global_action('clear_loop', self.clear_loop)
         self.add_global_action('clear_module', self.clear_module)
         self.add_global_action('toggle_input', self.toggle_input)
+        self.add_global_action('select_global_loop', self.select_global_loop)
+        self.add_global_action('stop_global_loop', self.stop_global_loop)
+        self.add_global_action('clear_global_loop', self.clear_global_loop)
 
         self.socket = Socket(self)
         
@@ -60,6 +65,16 @@ class ActionsBase(UserActionsBase):
     def deselect_mfx(self, action_def, args):
         index = int(args[-1]) - 1
         self.set.active_module.deselect_mfx(index)
+
+    @catch_exception
+    def select_gfx(self, action_def, args):
+        index = int(args[-1]) - 1
+        self.set.select_gfx(index)
+
+    @catch_exception
+    def deselect_gfx(self, action_def, args):
+        index = int(args[-1]) - 1
+        self.set.deselect_gfx(index)
 
     @catch_exception
     def select_input(self, action_def, args):
@@ -98,6 +113,21 @@ class ActionsBase(UserActionsBase):
         index = int(args[-1]) - 1
         self.set.clear_module(index)
 
+    @catch_exception    
+    def select_global_loop(self, action_def, args):
+        index = int(args[-1]) - 1
+        self.set.select_global_loop(index)
+
+    @catch_exception    
+    def stop_global_loop(self, action_def, args):
+        index = int(args[-1]) - 1
+        self.set.stop_global_loop(index)
+
+    @catch_exception    
+    def clear_global_loop(self, action_def, args):
+        index = int(args[-1]) - 1
+        self.set.clear_global_loop(index)
+
     @catch_exception
     def get_state(self):
         if self.set:
@@ -107,6 +137,8 @@ class ActionsBase(UserActionsBase):
             modules = []
             loops = []
             mfx = []
+            gfx = []
+            global_loops = []
 
             for inpt in self.set.midi_inputs + self.set.audio_inputs:
                 inputs[inpt] = 'dark'
@@ -131,8 +163,20 @@ class ActionsBase(UserActionsBase):
                 brightness = 0
                 if module_fx.track.arm == 1:
                     brightness = 1
+                    inputs['AS'] = 'white'
                 mfx.append({
                     'index': self.set.active_module.module_fx.index(module_fx),
+                    'color': 'white', 
+                    'brightness': brightness, 
+                })
+
+            for global_fx in self.set.global_fx:
+                brightness = 0
+                if global_fx.arm == 1:
+                    brightness = 1
+                    inputs['AS'] = 'white'
+                gfx.append({
+                    'index': self.set.global_fx.index(global_fx),
                     'color': 'white', 
                     'brightness': brightness, 
                 })
@@ -164,14 +208,25 @@ class ActionsBase(UserActionsBase):
                     'key_name': key,
                     'color': color, 
                     'brightness': brightness,
-                }) 
+                })
+
+            for global_loop in self.set.global_loops:
+                color = 'red' if global_loop.is_recording else 'white'
+                brightness = 1 if global_loop.is_playing else 0
+                global_loops.append({
+                    'index': self.set.global_loops.index(global_loop),
+                    'color': color, 
+                    'brightness': brightness,
+                })
 
             return {
                 'instr': instr,
                 'inputs': inputs,
                 'modules': modules,
                 'loops': loops,
-                'mfx': mfx
+                'mfx': mfx,
+                'gfx': gfx,
+                'globalLoops': global_loops
             }
 
         else:

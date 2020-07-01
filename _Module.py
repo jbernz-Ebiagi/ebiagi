@@ -59,35 +59,27 @@ class Module:
 
     def select_instrument(self, index):
         self.held_instruments.add(self.instruments[index])
-        self.arm_instruments_and_mfx()
+        self.set.arm_instruments_and_fx()
 
     def deselect_instrument(self, index):
         if self.instruments[index] in self.held_instruments:
             self.held_instruments.remove(self.instruments[index])
         if len(self.held_instruments) + len(self.held_mfx) > 0:
-            self.arm_instruments_and_mfx()
+            self.set.arm_instruments_and_fx()
 
     def select_mfx(self, index):
         self.held_mfx.add(self.module_fx[index])
-        self.arm_instruments_and_mfx()
+        self.select_input('AS')       
+        self.set.arm_instruments_and_fx()
+        self.deselect_input('AS')
 
     def deselect_mfx(self, index):
         if self.module_fx[index] in self.held_mfx:
             self.held_mfx.remove(self.module_fx[index])
         if len(self.held_instruments) + len(self.held_mfx) > 0:
-            self.arm_instruments_and_mfx()
-
-    def arm_instruments_and_mfx(self):
-        for instrument in self.instruments:
-            if instrument in self.held_instruments:
-                instrument.arm(self.set.held_inputs)
-            else:
-                instrument.disarm(self.set.held_inputs)
-        for mfx in self.module_fx:
-            if mfx in self.held_mfx:
-                mfx.arm(self.set.held_inputs)
-            else:
-                mfx.disarm(self.set.held_inputs)
+            self.set.select_input('AS')
+            self.set.arm_instruments_and_fx()
+            self.set.deselect_input('AS')
 
     def activate(self):
         self.log('activate ' + self.track.name)
