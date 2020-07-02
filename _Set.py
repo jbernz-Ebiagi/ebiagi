@@ -31,6 +31,9 @@ class Set(UserActionsBase):
                         self.global_loops.append(clip_slot)
             if is_gfx(track):
                 self.global_fx.append(track)
+                for routing in track.available_input_routing_types:
+                    if routing.display_name == 'AS':
+                        track.input_routing_type = routing
 
         self.activate_module(0)
 
@@ -80,6 +83,8 @@ class Set(UserActionsBase):
             self.modules[index].clear_all_loops()
 
     def select_global_loop(self, index):
+        if self.global_loops[index].is_playing:
+            self.setCrossfade(0)
         self.global_loops[index].fire()
 
     def stop_global_loop(self, index):
@@ -87,6 +92,7 @@ class Set(UserActionsBase):
 
     def clear_global_loop(self, index):
         self.global_loops[index].delete_clip()
+        self.setCrossfade(127)
 
     def select_gfx(self, index):
         self.held_gfx.add(self.global_fx[index])
@@ -96,9 +102,13 @@ class Set(UserActionsBase):
 
     def deselect_gfx(self, index):
         self.held_gfx.remove(self.global_fx[index])
-        self.select_input('AS')
-        self.arm_instruments_and_fx()
-        self.deselect_input('AS')
+        if len(self.held_gfx) + len(activate_module.held_instruments) + len(activate_module.held_mfx) > 0:
+            self.select_input('AS')
+            self.arm_instruments_and_fx()
+            self.deselect_input('AS')
+
+    def setCrossfade(self, value):
+        self.global_fx[1].devices[0].parameters[1].value = value
 
     def log(self, message):
         self.base.canonical_parent.log_message(message)

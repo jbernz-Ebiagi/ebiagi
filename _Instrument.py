@@ -18,8 +18,14 @@ class Instrument:
         while not is_module(tracks[i]) and not is_instrument(tracks[i]) and tracks[i].is_grouped:
             if is_midi_input(tracks[i], self.module.set.midi_inputs):
                 self.midi_inputs.append(tracks[i])
+                for routing in tracks[i].available_input_routing_types:
+                    if routing.display_name == tracks[i].name.replace('_IN',''):
+                        tracks[i].input_routing_type = routing
             if is_audio_input(tracks[i], self.module.set.audio_inputs):
                 self.audio_inputs.append(tracks[i])
+                for routing in tracks[i].available_input_routing_types:
+                    if routing.display_name == tracks[i].name.replace('_IN',''):
+                        tracks[i].input_routing_type = routing
             if is_instr(tracks[i]):
                 self.instr = tracks[i]
             if is_clip_track(tracks[i]):

@@ -16,6 +16,10 @@ class Module:
         self.held_mfx = set([])
         self.loops = {}
 
+        for routing in self.track.available_output_routing_types:
+            if routing.display_name == 'OUTPUT':
+                self.track.output_routing_type = routing
+
         i = self.set.tracks.index(track) + 1
         while not is_module(self.set.tracks[i]) and self.set.tracks[i].is_grouped:
             if is_instrument(self.set.tracks[i]):
