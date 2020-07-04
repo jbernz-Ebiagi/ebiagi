@@ -19,7 +19,7 @@ class Loop:
             self.finish_record()
         elif self.main_clip_slot.is_playing:
             for instrument in instruments:
-                self.module.select_instrument(module.instruments.index(instrument))
+                self.module.select_instrument(self.module.instruments.index(instrument))
         else:
             for i in self.instr_clip_slots:
                 clip_slot = i['clip_slot']
@@ -76,7 +76,7 @@ class Loop:
         instruments = set([])
         for i in self.instr_clip_slots:
             if i['clip_slot'].has_clip:
-                if not is_empty_clip(i['clip_slot'].clip) and i['instrument']:
+                if not is_empty_clip(i['clip_slot'].clip) and i['clip_slot'].has_stop_button and i['instrument']:
                     instruments.add(i['instrument'])
         return instruments
 
@@ -94,6 +94,12 @@ class Loop:
                 return True
         else:
             return False
+
+    def quantize(self):
+        for i in self.instr_clip_slots:
+            if i['clip_slot'].has_clip:
+                i['clip_slot'].clip.quantize(5, 1.0)
+
 
     def log(self, msg):
         self.module.log(msg)

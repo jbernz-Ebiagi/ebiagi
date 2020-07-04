@@ -1,7 +1,7 @@
 from _Instrument import Instrument
 from _ModuleFX import ModuleFX
 from _Loop import Loop
-from _utils import catch_exception, is_module, is_instrument, is_module_fx, is_loop_scene, get_loop_key
+from _utils import catch_exception, is_module, is_instrument, is_module_fx, is_loop_scene, get_loop_key, set_output_routing
 
 class Module:
 
@@ -16,9 +16,7 @@ class Module:
         self.held_mfx = set([])
         self.loops = {}
 
-        for routing in self.track.available_output_routing_types:
-            if routing.display_name == 'OUTPUT':
-                self.track.output_routing_type = routing
+        set_output_routing(self.track, 'OUTPUT')
 
         i = self.set.tracks.index(track) + 1
         while not is_module(self.set.tracks[i]) and self.set.tracks[i].is_grouped:
@@ -116,6 +114,9 @@ class Module:
     def clear_all_loops(self):
         for loop in self.loops:
             self.loops[loop].clear()
+
+    def quantize_loop(self, name):
+        self.loops[name].quantize()
 
     def toggle_input(self, name):
         for instrument in self.instruments:

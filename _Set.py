@@ -1,6 +1,6 @@
 from threading import Timer
 from ClyphX_Pro.clyphx_pro.UserActionsBase import UserActionsBase
-from _utils import catch_exception, is_module, is_record, is_gfx
+from _utils import catch_exception, is_module, is_record, is_gfx, set_input_routing
 from _Module import Module
 
 class Set(UserActionsBase):
@@ -18,7 +18,7 @@ class Set(UserActionsBase):
         self.log('Building virtual set...')
 
         #TODO make inputs dynamic
-        self.midi_inputs = ['CBORD', 'AS', 'NANOK']
+        self.midi_inputs = ['CBORD', 'AS', 'NANOK', 'MPE2', 'MPE3', 'MPE4', 'MPE5']
         self.audio_inputs = ['LINE']
         self.held_inputs = set([])
 
@@ -31,9 +31,7 @@ class Set(UserActionsBase):
                         self.global_loops.append(clip_slot)
             if is_gfx(track):
                 self.global_fx.append(track)
-                for routing in track.available_input_routing_types:
-                    if routing.display_name == 'AS':
-                        track.input_routing_type = routing
+                set_input_routing(track, 'AS')
 
         self.activate_module(0)
 
@@ -102,7 +100,7 @@ class Set(UserActionsBase):
 
     def deselect_gfx(self, index):
         self.held_gfx.remove(self.global_fx[index])
-        if len(self.held_gfx) + len(activate_module.held_instruments) + len(activate_module.held_mfx) > 0:
+        if len(self.held_gfx) + len(active_module.held_instruments) + len(active_module.held_mfx) > 0:
             self.select_input('AS')
             self.arm_instruments_and_fx()
             self.deselect_input('AS')

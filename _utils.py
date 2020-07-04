@@ -79,6 +79,24 @@ def get_loop_key(name):
 def is_record(track):
     return track.name == 'RECORD'
 
+def set_input_routing(track, routing_name):
+    for routing in track.available_input_routing_types:
+        if routing.display_name == routing_name:
+            track.input_routing_type = routing
+
+def set_output_routing(track, routing_name):
+    for routing in track.available_output_routing_types:
+        if routing.display_name == routing_name:
+            track.output_routing_type = routing
+
+def is_mpe_track(track):
+    return 'MPE' in track.input_routing_type.display_name
+
+def set_mpe_output_channel(track):
+    channel = int(track.input_routing_type.display_name.replace('_IN','')[-1])
+    if track.available_output_routing_channels[channel+1]:
+        track.output_routing_channel = track.available_output_routing_channels[channel+1]
+
 color_index_map = {
     9: 'blue',
     12: 'pink',

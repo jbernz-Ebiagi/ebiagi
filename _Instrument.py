@@ -1,4 +1,4 @@
-from _utils import catch_exception, is_module, is_instrument, is_midi_input, is_audio_input, is_instr, is_loop_track, is_clip_track
+from _utils import catch_exception, is_module, is_instrument, is_midi_input, is_audio_input, is_instr, is_loop_track, is_clip_track, set_input_routing, is_mpe_track, set_mpe_output_channel
 
 class Instrument:
 
@@ -18,20 +18,18 @@ class Instrument:
         while not is_module(tracks[i]) and not is_instrument(tracks[i]) and tracks[i].is_grouped:
             if is_midi_input(tracks[i], self.module.set.midi_inputs):
                 self.midi_inputs.append(tracks[i])
-                for routing in tracks[i].available_input_routing_types:
-                    if routing.display_name == tracks[i].name.replace('_IN',''):
-                        tracks[i].input_routing_type = routing
+                set_input_routing(tracks[i], tracks[i].name.replace('_IN',''))
             if is_audio_input(tracks[i], self.module.set.audio_inputs):
                 self.audio_inputs.append(tracks[i])
-                for routing in tracks[i].available_input_routing_types:
-                    if routing.display_name == tracks[i].name.replace('_IN',''):
-                        tracks[i].input_routing_type = routing
+                set_input_routing(tracks[i], tracks[i].name.replace('_IN',''))
             if is_instr(tracks[i]):
                 self.instr = tracks[i]
             if is_clip_track(tracks[i]):
                 self.clip_tracks.append(tracks[i])
             if is_loop_track(tracks[i]):
                 self.loop_tracks.append(tracks[i])
+            if is_mpe_track(tracks[i]):
+                set_mpe_output_channel(tracks[i])
             i += 1
 
     def get_input(self, input_name):

@@ -28,6 +28,7 @@ class ActionsBase(UserActionsBase):
         self.add_global_action('stop_loop', self.stop_loop)
         self.add_global_action('stop_all_loops', self.stop_all_loops)
         self.add_global_action('clear_loop', self.clear_loop)
+        self.add_global_action('quantize_loop', self.quantize_loop)
         self.add_global_action('clear_module', self.clear_module)
         self.add_global_action('toggle_input', self.toggle_input)
         self.add_global_action('select_global_loop', self.select_global_loop)
@@ -108,6 +109,10 @@ class ActionsBase(UserActionsBase):
     def clear_loop(self, action_def, args):
         self.set.active_module.clear_loop(args)
 
+    @catch_exception    
+    def quantize_loop(self, action_def, args):
+        self.set.active_module.quantize_loop(args)  
+
     @catch_exception
     def clear_module(self, action_def, args):
         index = int(args[-1]) - 1
@@ -158,6 +163,12 @@ class ActionsBase(UserActionsBase):
                     'color': color, 
                     'brightness': brightness, 
                 })
+
+            #Combine cbord and mpe input colors
+            if inputs['MPE2'] != 'dark' and inputs['CBORD'] == 'dark':
+                inputs['CBORD'] = inputs['MPE2']
+            elif inputs['CBORD'] != inputs['MPE2'] and inputs['CBORD'] != 'dark' and inputs['MPE2'] != 'dark':
+                inputs['CBORD'] = 'white'
 
             for module_fx in self.set.active_module.module_fx:
                 brightness = 0
