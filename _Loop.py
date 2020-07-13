@@ -61,6 +61,16 @@ class Loop:
                     i['clip_slot'].delete_clip()
                     i['clip_slot'].has_stop_button = 1
 
+    def mute(self):
+        for i in self.instr_clip_slots:
+            if i['track']:
+                i['track'].mute = 1
+
+    def unmute(self):
+        for i in self.instr_clip_slots:
+            if i['track']:
+                i['track'].mute = 0
+
     def finish_record(self):
         clip_count = 0
         for i in self.instr_clip_slots:

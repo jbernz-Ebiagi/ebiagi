@@ -34,6 +34,8 @@ class ActionsBase(UserActionsBase):
         self.add_global_action('select_global_loop', self.select_global_loop)
         self.add_global_action('stop_global_loop', self.stop_global_loop)
         self.add_global_action('clear_global_loop', self.clear_global_loop)
+        self.add_global_action('mute_all_loops', self.mute_all_loops)
+        self.add_global_action('unmute_all_loops', self.unmute_all_loops)
 
         self.socket = Socket(self)
         
@@ -132,6 +134,14 @@ class ActionsBase(UserActionsBase):
     def clear_global_loop(self, action_def, args):
         index = int(args[-1]) - 1
         self.set.clear_global_loop(index)
+
+    @catch_exception    
+    def mute_all_loops(self, action_def, args):
+        self.set.active_module.mute_all_loops()
+
+    @catch_exception    
+    def unmute_all_loops(self, action_def, args):
+        self.set.active_module.unmute_all_loops()
 
     @catch_exception
     def get_state(self):

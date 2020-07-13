@@ -116,6 +116,14 @@ class Module:
         for loop in self.loops:
             self.loops[loop].clear()
 
+    def mute_all_loops(self):
+        for loop in self.loops:
+            self.loops[loop].mute()
+
+    def unmute_all_loops(self):
+        for loop in self.loops:
+            self.loops[loop].unmute()
+
     def quantize_loop(self, name):
         self.loops[name].quantize()
 
