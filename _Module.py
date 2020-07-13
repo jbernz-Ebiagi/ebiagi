@@ -71,9 +71,9 @@ class Module:
 
     def select_mfx(self, index):
         self.held_mfx.add(self.module_fx[index])
-        self.select_input('AS')       
+        self.set.select_input('AS')       
         self.set.arm_instruments_and_fx()
-        self.deselect_input('AS')
+        self.set.deselect_input('AS')
 
     def deselect_mfx(self, index):
         if self.module_fx[index] in self.held_mfx:
@@ -93,6 +93,7 @@ class Module:
         self.log('deactivate ' + self.track.name)
         for instrument in self.instruments:
             instrument.deactivate()
+            instrument.disarm(list([]))
         self.track.fold_state = 1
 
     def select_loop(self, name):

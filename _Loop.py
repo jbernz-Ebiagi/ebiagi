@@ -30,12 +30,16 @@ class Loop:
                 elif not clip_slot.has_clip and clip_slot.has_stop_button and i['track'].playing_slot_index > -1 and i['track'].has_midi_output:
                     clip_slot.create_clip(1)
                 else:
+                    self.log(len(self.module.held_instruments) + len(self.module.held_mfx))
                     #multi clip loop (hold insturment to get one part of it)
                     if len(instruments) + len(mfx) <= 1 or \
                     len(self.module.held_instruments) + len(self.module.held_mfx) == 0 or \
                     i['instrument'] in self.module.held_instruments or \
                     i['mfx'] in self.module.held_mfx: 
                         i['clip_slot'].fire()
+                        if i['clip_slot'].has_clip and i['clip_slot'].has_stop_button:
+                            self.module.set.base.song().view.detail_clip = i['clip_slot'].clip
+                            self.module.set.base.canonical_parent.application().view.show_view('Detail/Clip')
 
     def deselect(self):
         for instrument in self.get_instruments():

@@ -47,6 +47,8 @@ class Instrument:
         for track in self.midi_inputs:
             if len(input_list) == 0 or track.name.replace('_IN','') in input_list:
                 track.arm = 1
+        self.module.set.base.song().view.selected_track = self.instr
+        self.module.set.base.canonical_parent.application().view.show_view('Detail/DeviceChain')
 
     def disarm(self, input_list):
         for track in self.midi_inputs:
@@ -57,11 +59,15 @@ class Instrument:
         for loop_track in self.loop_tracks:
             if loop_track.can_be_armed:
                 loop_track.arm = 1
+        if self.instr.devices[0]:
+           self.instr.devices[0].parameters[0].value = 1
 
     def deactivate(self):
         for loop_track in self.loop_tracks:
             if loop_track.can_be_armed:
                 loop_track.arm = 0
+        if self.instr.devices[0]:
+           self.instr.devices[0].parameters[0].value = 0
 
     def log(self, msg):
         self.module.log(msg)
