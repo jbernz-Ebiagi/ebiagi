@@ -1,4 +1,5 @@
-from _utils import catch_exception, is_module, is_instrument, is_midi_input, is_audio_input, is_instr, is_loop_track, is_clip_track, set_input_routing, is_mpe_track, set_mpe_output_channel
+import math
+from _utils import catch_exception, get_loop_key, is_module, is_instrument, is_midi_input, is_audio_input, is_instr, is_loop_track, is_clip_track, set_input_routing, is_mpe_track, set_mpe_output_channel
 
 class Instrument:
 
@@ -11,6 +12,7 @@ class Instrument:
         self.audio_inputs = []
         self.nanok_in = None
         self.clip_tracks = []
+        self.clips = {}
         self.loop_tracks= []
 
         tracks = module.set.tracks
@@ -31,6 +33,27 @@ class Instrument:
             if is_mpe_track(tracks[i]):
                 set_mpe_output_channel(tracks[i])
             i += 1
+
+
+        scenes = module.set.scenes
+        i = 0
+        stop_clip_index = None
+        for scene in scenes:
+            if scene.name == 'STOPCLIP':
+                stop_clip_index = i
+            i += 1
+        i = 0
+        for scene in scenes:
+            self.clips[scene.name] = {
+                'play': [],
+                'stop': []
+            }
+            for clip_track in self.clip_tracks:
+                if clip_track.clip_slots[i].has_clip:
+                    self.clips[scene.name]['play'].append(clip_track.clip_slots[i])
+                    self.clips[scene.name]['stop'].append(clip_track.clip_slots[stop_clip_index])
+            i += 1
+            
 
     def get_input(self, input_name):
         for track in self.midi_inputs + self.audio_inputs:
@@ -55,6 +78,15 @@ class Instrument:
             if len(input_list) == 0 or track.name.replace('_IN','') in input_list:
                 track.arm = 0
 
+    def is_armed(self):
+        for track in self.midi_inputs + self.audio_inputs:
+            if track.arm == 1:
+                return True
+        return False
+
+    def stop(self):
+        self.track.stop_all_clips()
+
     def activate(self):
         for loop_track in self.loop_tracks:
             if loop_track.can_be_armed:
@@ -68,6 +100,30 @@ class Instrument:
                 loop_track.arm = 0
         if self.instr.devices[0]:
            self.instr.devices[0].parameters[0].value = 0
+
+    def play_clip(self, name):
+        nanok_in = self.get_input('NANOK')
+        if nanok_in and nanok_in.arm:
+            for clip_slot in self.clips[name]['play']:
+                clip_slot.fire()
+
+    def stop_clip(self, name):
+        nanok_in = self.get_input('NANOK')
+        if nanok_in and nanok_in.arm:
+            for clip_slot in self.clips[name]['stop']:
+                clip_slot.fire()
+
+    def shift_preset(self, direction):
+        if self.instr.devices[0] and self.instr.devices[0].can_have_chains:
+            chains = list(self.instr.devices[0].chains)
+            if len(chains) > 1:
+                newValue = int(self.instr.devices[0].parameters[1].value + direction)
+                if newValue < 0:
+                    newValue = len(chains) - 1
+                elif newValue > len(chains) - 1:
+                    newValue = 0
+                self.instr.devices[0].parameters[1].value = newValue
+                self.instr.devices[0].view.selected_chain = chains[newValue]
 
     def log(self, msg):
         self.module.log(msg)

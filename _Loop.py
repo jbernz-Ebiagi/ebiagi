@@ -17,20 +17,23 @@ class Loop:
         is_locked = self.is_locked()
         if self.main_clip_slot.is_recording:
             self.finish_record()
-        elif self.main_clip_slot.is_playing:
-            for instrument in instruments:
-                self.module.select_instrument(self.module.instruments.index(instrument))
+        # elif self.main_clip_slot.is_playing:
+        #     for instrument in instruments:
+        #         self.module.select_instrument(self.module.instruments.index(instrument))
         else:
             for i in self.instr_clip_slots:
                 clip_slot = i['clip_slot']
                 #Don't record if loop is locked
                 if is_locked and not clip_slot.has_clip:
                     continue
+                elif clip_slot.is_playing:
+                    self.module.set.base.song().view.detail_clip = i['clip_slot'].clip
+                    self.module.set.base.canonical_parent.application().view.show_view('Detail/Clip')
+                    continue
                 #Don't record if it will stop another clip
                 elif not clip_slot.has_clip and clip_slot.has_stop_button and i['track'].playing_slot_index > -1 and i['track'].has_midi_output:
                     clip_slot.create_clip(1)
                 else:
-                    self.log(len(self.module.held_instruments) + len(self.module.held_mfx))
                     #multi clip loop (hold insturment to get one part of it)
                     if len(instruments) + len(mfx) <= 1 or \
                     len(self.module.held_instruments) + len(self.module.held_mfx) == 0 or \
@@ -77,7 +80,7 @@ class Loop:
             clip_slot = i['clip_slot']
             if clip_slot.has_clip:
                 if (clip_slot.clip.is_midi_clip and not is_empty_clip(clip_slot.clip)) or \
-                (clip_slot.clip.is_audio_clip and (not i['instrument'].get_input('LINE') or i['instrument'].get_input('LINE').arm == 1)):
+                (clip_slot.clip.is_audio_clip and i['instrument'].is_armed()):
                     clip_slot.fire()
                     clip_count += 1
                 else:

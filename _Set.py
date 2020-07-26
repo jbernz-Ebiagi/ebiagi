@@ -1,6 +1,6 @@
 from threading import Timer
 from ClyphX_Pro.clyphx_pro.UserActionsBase import UserActionsBase
-from _utils import catch_exception, is_module, is_record, is_gfx, set_input_routing
+from _utils import catch_exception, is_module, is_record, is_gfx, is_metronome, set_input_routing
 from _Module import Module
 
 class Set(UserActionsBase):
@@ -32,6 +32,8 @@ class Set(UserActionsBase):
             if is_gfx(track):
                 self.global_fx.append(track)
                 set_input_routing(track, 'AS')
+            if is_metronome(track):
+                self.metronome = track
 
         self.activate_module(0)
 
@@ -107,6 +109,10 @@ class Set(UserActionsBase):
 
     def setCrossfade(self, value):
         self.global_fx[1].devices[0].parameters[1].value = value
+
+    def toggle_metronome(self):
+        if self.metronome:
+            self.metronome.solo = 0 if self.metronome.solo else 1
 
     def log(self, message):
         self.base.canonical_parent.log_message(message)

@@ -34,13 +34,12 @@ class Module:
             if is_loop_scene(scenes[s]):
                 instr_clip_slots = []
                 for instrument in self.instruments:
-                    for clip_track in instrument.clip_tracks:
-                        instr_clip_slots.append({
-                            'clip_slot': clip_track.clip_slots[s],
-                            'instrument': instrument,
-                            'track': clip_track,
-                            'mfx': None
-                        })
+                    instr_clip_slots.append({
+                        'clip_slot': instrument.instr.clip_slots[s],
+                        'instrument': instrument,
+                        'track': instrument.instr,
+                        'mfx': None
+                    })
                     for loop_track in instrument.loop_tracks:
                         instr_clip_slots.append({
                             'clip_slot': loop_track.clip_slots[s],
@@ -68,6 +67,9 @@ class Module:
             self.held_instruments.remove(self.instruments[index])
         if len(self.held_instruments) + len(self.held_mfx) > 0:
             self.set.arm_instruments_and_fx()
+
+    def stop_instrument(self, index):
+        self.instruments[index].stop()
 
     def select_mfx(self, index):
         self.held_mfx.add(self.module_fx[index])
@@ -130,6 +132,24 @@ class Module:
     def toggle_input(self, name):
         for instrument in self.instruments:
             instrument.toggle_input(name)
+
+    def play_clip(self, name):
+        for instrument in self.instruments:
+            instrument.play_clip(name)
+
+    def stop_clip(self, name):
+        for instrument in self.instruments:
+            instrument.stop_clip(name)
+
+    def shift_preset(self, direction):
+        for i in self.held_instruments:
+            i.shift_preset(direction)
+
+    @catch_exception    
+    def finish_record(self):
+        for loop in self.loops:
+            if self.loops[loop].main_clip_slot.is_recording:
+                self.loops[loop].finish_record()
 
     def log(self, msg):
         self.set.log(msg)

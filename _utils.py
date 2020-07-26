@@ -97,6 +97,9 @@ def set_mpe_output_channel(track):
     if track.available_output_routing_channels[channel+1]:
         track.output_routing_channel = track.available_output_routing_channels[channel+1]
 
+def is_metronome(track):
+    return track.name == 'METRO'
+
 color_index_map = {
     9: 'blue',
     12: 'pink',

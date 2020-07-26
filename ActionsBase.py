@@ -17,6 +17,7 @@ class ActionsBase(UserActionsBase):
         self.add_global_action('activate_module', self.activate_module)
         self.add_global_action('select_instrument', self.select_instrument)
         self.add_global_action('deselect_instrument', self.deselect_instrument)
+        self.add_global_action('stop_instrument', self.stop_instrument)
         self.add_global_action('select_mfx', self.select_mfx)
         self.add_global_action('deselect_mfx', self.deselect_mfx)
         self.add_global_action('select_gfx', self.select_gfx)
@@ -36,6 +37,12 @@ class ActionsBase(UserActionsBase):
         self.add_global_action('clear_global_loop', self.clear_global_loop)
         self.add_global_action('mute_all_loops', self.mute_all_loops)
         self.add_global_action('unmute_all_loops', self.unmute_all_loops)
+        self.add_global_action('finish_record', self.finish_record)
+        self.add_global_action('toggle_metronome', self.toggle_metronome)
+        self.add_global_action('play_clip', self.play_clip)
+        self.add_global_action('stop_clip', self.stop_clip)
+        self.add_global_action('shift_preset_down', self.shift_preset_down)
+        self.add_global_action('shift_preset_up', self.shift_preset_up)
 
         self.socket = Socket(self)
         
@@ -58,6 +65,11 @@ class ActionsBase(UserActionsBase):
     def deselect_instrument(self, action_def, args):
         index = int(args[-1]) - 1
         self.set.active_module.deselect_instrument(index)
+
+    @catch_exception
+    def stop_instrument(self, action_def, args):
+        index = int(args[-1]) - 1
+        self.set.active_module.stop_instrument(index)
 
     @catch_exception
     def select_mfx(self, action_def, args):
@@ -142,6 +154,30 @@ class ActionsBase(UserActionsBase):
     @catch_exception    
     def unmute_all_loops(self, action_def, args):
         self.set.active_module.unmute_all_loops()
+
+    @catch_exception    
+    def finish_record(self, action_def, args):
+        self.set.active_module.finish_record()
+
+    @catch_exception    
+    def toggle_metronome(self, action_def, args):
+        self.set.toggle_metronome()
+
+    @catch_exception    
+    def play_clip(self, action_def, args):
+        self.set.active_module.play_clip(args.upper())
+
+    @catch_exception    
+    def stop_clip(self, action_def, args):
+        self.set.active_module.stop_clip(args.upper())
+
+    @catch_exception    
+    def shift_preset_up(self, action_def, args):
+        self.set.active_module.shift_preset(1)
+
+    @catch_exception    
+    def shift_preset_down(self, action_def, args):
+        self.set.active_module.shift_preset(-1)
 
     @catch_exception
     def get_state(self):
