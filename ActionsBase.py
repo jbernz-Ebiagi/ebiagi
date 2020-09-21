@@ -3,6 +3,7 @@ from ClyphX_Pro.clyphx_pro.UserActionsBase import UserActionsBase
 from _utils import catch_exception, color_name
 from _Set import Set
 from _Socket import Socket
+from _Scheduler import start_scheduler, schedule
 
 class ActionsBase(UserActionsBase):
 
@@ -18,6 +19,8 @@ class ActionsBase(UserActionsBase):
         self.add_global_action('select_instrument', self.select_instrument)
         self.add_global_action('deselect_instrument', self.deselect_instrument)
         self.add_global_action('stop_instrument', self.stop_instrument)
+        self.add_global_action('set_instrument_params', self.set_instrument_params)
+        self.add_global_action('reset_instrument_params', self.reset_instrument_params)
         self.add_global_action('select_mfx', self.select_mfx)
         self.add_global_action('deselect_mfx', self.deselect_mfx)
         self.add_global_action('select_gfx', self.select_gfx)
@@ -45,6 +48,8 @@ class ActionsBase(UserActionsBase):
         self.add_global_action('shift_preset_up', self.shift_preset_up)
 
         self.socket = Socket(self)
+
+        start_scheduler()
         
 
     @catch_exception
@@ -65,6 +70,16 @@ class ActionsBase(UserActionsBase):
     def deselect_instrument(self, action_def, args):
         index = int(args[-1]) - 1
         self.set.active_module.deselect_instrument(index)
+
+    @catch_exception
+    def set_instrument_params(self, action_def, args):
+        index = int(args[-1]) - 1
+        self.set.active_module.set_instrument_params(index)
+
+    @catch_exception
+    def reset_instrument_params(self, action_def, args):
+        index = int(args[-1]) - 1
+        self.set.active_module.reset_instrument_params(index)
 
     @catch_exception
     def stop_instrument(self, action_def, args):

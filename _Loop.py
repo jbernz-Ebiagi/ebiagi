@@ -40,9 +40,9 @@ class Loop:
                     i['instrument'] in self.module.held_instruments or \
                     i['mfx'] in self.module.held_mfx: 
                         i['clip_slot'].fire()
-                        if i['clip_slot'].has_clip and i['clip_slot'].has_stop_button:
-                            self.module.set.base.song().view.detail_clip = i['clip_slot'].clip
-                            self.module.set.base.canonical_parent.application().view.show_view('Detail/Clip')
+                        #if i['clip_slot'].has_clip and i['clip_slot'].has_stop_button:
+                            #self.module.set.base.song().view.detail_clip = i['clip_slot'].clip
+                            #self.module.set.base.canonical_parent.application().view.show_view('Detail/Clip')
 
     def deselect(self):
         for instrument in self.get_instruments():

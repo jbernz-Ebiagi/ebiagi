@@ -26,6 +26,8 @@ class Module:
             if is_module_fx(self.set.tracks[i]):
                 mfx = ModuleFX(self.set.tracks[i], self)
                 self.module_fx.append(mfx)
+            if self.set.tracks[i].is_foldable:
+                self.set.tracks[i].fold_state = 1
             i += 1
 
         s = 0
@@ -60,7 +62,14 @@ class Module:
 
     def select_instrument(self, index):
         self.held_instruments.add(self.instruments[index])
-        self.set.arm_instruments_and_fx()
+        if len(self.set.held_inputs) is 0:
+            for ipt in self.set.midi_inputs:
+                if self.instruments[index].get_input(ipt):
+                    self.set.held_inputs.add(ipt)
+            self.set.arm_instruments_and_fx()
+            self.set.held_inputs = set([])
+        else:
+            self.set.arm_instruments_and_fx()
 
     def deselect_instrument(self, index):
         if self.instruments[index] in self.held_instruments:
@@ -70,6 +79,12 @@ class Module:
 
     def stop_instrument(self, index):
         self.instruments[index].stop()
+
+    def set_instrument_params(self, index):
+        self.instruments[index].set_params()
+
+    def reset_instrument_params(self, index):
+        self.instruments[index].reset_params()
 
     def select_mfx(self, index):
         self.held_mfx.add(self.module_fx[index])
@@ -89,13 +104,18 @@ class Module:
         self.log('activate ' + self.track.name)
         for instrument in self.instruments:
             instrument.activate()
+        for mfx in self.module_fx:
+            mfx.activate()
         self.track.fold_state = 0
 
     def deactivate(self):
         self.log('deactivate ' + self.track.name)
         for instrument in self.instruments:
             instrument.deactivate()
+            instrument.reset_params()
             instrument.disarm(list([]))
+        for mfx in self.module_fx:
+            mfx.deactivate()
         self.track.fold_state = 1
 
     def select_loop(self, name):
@@ -119,12 +139,16 @@ class Module:
             self.loops[loop].clear()
 
     def mute_all_loops(self):
-        for loop in self.loops:
-            self.loops[loop].mute()
+        if len(self.held_instruments) > 0:
+            for i in self.held_instruments:
+                i.mute_loops()
+        else:
+            for i in self.instruments:
+                i.mute_loops()
 
     def unmute_all_loops(self):
-        for loop in self.loops:
-            self.loops[loop].unmute()
+        for i in self.instruments:
+            i.unmute_loops()
 
     def quantize_loop(self, name):
         self.loops[name].quantize()
@@ -136,10 +160,14 @@ class Module:
     def play_clip(self, name):
         for instrument in self.instruments:
             instrument.play_clip(name)
+        for module_fx in self.module_fx:
+            module_fx.play_clip(name)
 
     def stop_clip(self, name):
         for instrument in self.instruments:
             instrument.stop_clip(name)
+        for module_fx in self.module_fx:
+            module_fx.stop_clip(name)
 
     def shift_preset(self, direction):
         for i in self.held_instruments:

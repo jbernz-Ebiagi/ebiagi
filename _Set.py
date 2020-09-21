@@ -35,6 +35,8 @@ class Set(UserActionsBase):
             if is_metronome(track):
                 self.metronome = track
 
+        for module in self.modules:
+            module.deactivate()
         self.activate_module(0)
 
 
@@ -43,8 +45,7 @@ class Set(UserActionsBase):
             if self.modules[index] != self.active_module:
                 if self.active_module:
                     self.active_module.stop_all_loops()
-                for module in self.modules:
-                    module.deactivate()
+                    self.active_module.deactivate()
                 self.modules[index].activate()
                 self.active_module = self.modules[index]
             else:
@@ -84,7 +85,7 @@ class Set(UserActionsBase):
 
     def select_global_loop(self, index):
         if self.global_loops[index].is_playing:
-            self.setCrossfade(0)
+            self.setCrossfadeLeft()
         self.global_loops[index].fire()
 
     def stop_global_loop(self, index):
@@ -92,7 +93,7 @@ class Set(UserActionsBase):
 
     def clear_global_loop(self, index):
         self.global_loops[index].delete_clip()
-        self.setCrossfade(127)
+        self.setCrossfadeRight()
 
     def select_gfx(self, index):
         self.held_gfx.add(self.global_fx[index])
@@ -107,8 +108,11 @@ class Set(UserActionsBase):
             self.arm_instruments_and_fx()
             self.deselect_input('AS')
 
-    def setCrossfade(self, value):
-        self.global_fx[1].devices[0].parameters[1].value = value
+    def setCrossfadeLeft(self):
+        self.global_fx[1].clip_slots[0].fire()
+
+    def setCrossfadeRight(self):
+        self.global_fx[1].clip_slots[1].fire()
 
     def toggle_metronome(self):
         if self.metronome:
