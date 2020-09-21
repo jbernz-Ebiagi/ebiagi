@@ -26,7 +26,7 @@ class Instrument:
             if is_audio_input(tracks[i], self.module.set.audio_inputs):
                 self.audio_inputs.append(tracks[i])
                 set_input_routing(tracks[i], tracks[i].name.replace('_IN',''))
-                track[i].input_routing_channel = track[i].available_input_routing_channels[1]
+                tracks[i].input_routing_channel = tracks[i].available_input_routing_channels[1]
             if is_instr(tracks[i]):
                 self.instr = tracks[i]
             if is_clip_track(tracks[i]):
