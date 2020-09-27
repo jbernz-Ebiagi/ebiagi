@@ -128,14 +128,23 @@ class Instrument:
                 if 'GATE' in clip_slot.clip.name:
                     self.mute_loops()
 
+                if 'SELECT' in clip_slot.clip.name:
+                    idx = self.module.instruments.index(self)
+                    self.module.select_instrument(idx)
+
     def stop_clip(self, name):
         nanok_in = self.get_input('NANOK')
         if (nanok_in and nanok_in.arm) or not nanok_in:
             for clip_slot in self.clips[name]['stop']:
                 clip_slot.fire()
             for clip_slot in self.clips[name]['play']:
+
                 if 'GATE' in clip_slot.clip.name:
                     self.unmute_loops()
+                    
+                if 'SELECT' in clip_slot.clip.name:
+                    idx = self.module.instruments.index(self)
+                    self.module.deselect_instrument(idx)
 
     def shift_preset(self, direction):
         if self.instr.devices[0] and self.instr.devices[0].can_have_chains:
