@@ -11,13 +11,53 @@ def catch_exception(f):
             args[0].log(traceback.format_exc())
     return func
 
+def is_module(track):
+    return track.name.startswith('M[')
+
+def is_instrument(track):
+    return track.name.startswith('I[')
+
+def is_input(track):
+    return '_IN' in track.name
+
+def set_input_routing(track, routing_name):
+    for routing in track.available_input_routing_types:
+        if routing.display_name == routing_name:
+            track.input_routing_type = routing
+            return
+
+def is_loop_track(track):
+    return track.name == 'LOOP'
+
+def get_loop_key(name):
+    return name[len('loop['):-len(']')]
+
+def set_output_routing(track, routing_name):
+    for routing in track.available_output_routing_types:
+        if routing.display_name == routing_name:
+            track.output_routing_type = routing
+
+def is_loop_scene(scene):
+    return 'loop' in scene.name
+
+def is_midi_channel(track):
+    return 'MIDI_CHANNEL' in track.name
+
+def is_audio_channel(track):
+    return 'AUDIO_CHANNEL' in track.name
+
+def is_mpe_track(track):
+    return 'MPE' in track.name
+
+def is_mpe_loop(track):
+    return track.name == 'MPE_LOOP'
+
 def strip_name_params(name):
     if name.find('[') != -1:
         return name[0:name.find('[')].strip()
     return name
 
-def is_module(track):
-    return track.name.startswith('M[')
+
 
 def is_midi_input(track, midi_input_names):
     return track.name.replace('_IN','') in midi_input_names and track.has_midi_output
@@ -25,8 +65,7 @@ def is_midi_input(track, midi_input_names):
 def is_audio_input(track, audio_input_names):
     return track.name.replace('_IN','') in audio_input_names and track.has_audio_output
 
-def is_instrument(track):
-    return track.name.startswith('I[')
+
 
 def is_module_fx(track):
     return track.name.startswith('MFX')
@@ -73,24 +112,19 @@ def is_empty_clip(clip):
         return False
     return True
 
-def get_loop_key(name):
-    return name[len('loop['):-len(']')]
 
 def is_record(track):
     return track.name == 'RECORD'
 
-def set_input_routing(track, routing_name):
-    for routing in track.available_input_routing_types:
-        if routing.display_name == routing_name:
-            track.input_routing_type = routing
+
 
 def set_output_routing(track, routing_name):
     for routing in track.available_output_routing_types:
         if routing.display_name == routing_name:
             track.output_routing_type = routing
 
-def is_mpe_track(track):
-    return 'MPE' in track.input_routing_type.display_name
+# def is_mpe_track(track):
+#     return 'MPE' in track.input_routing_type.display_name
 
 def set_mpe_output_channel(track):
     channel = int(track.input_routing_type.display_name.replace('_IN','')[-1])

@@ -1,121 +1,63 @@
-from _Instrument import Instrument
-from _utils import catch_exception, is_module, is_instrument, is_locked, is_empty_clip
+from _Instrument import Instrument, MidiInstrument, AudioInstrument
+from _utils import catch_exception, set_output_routing
 
 class Loop:
 
     @catch_exception
-    def __init__(self, main_clip_slot, instr_clip_slots, Module):
-        self.module = Module
-        self.main_clip_slot = main_clip_slot
-        #instr_clip_slot = {'clip_slot': --, 'instrument': --, 'mfx': --, 'track': --}
-        self.instr_clip_slots = instr_clip_slots
-        self.type = None
+    def __init__(self, Set):
+        self.set = Set
 
-    def select(self):
-        instruments = self.get_instruments()
-        mfx = self.get_mfx()
-        is_locked = self.is_locked()
-        if self.main_clip_slot.is_recording:
-            self.finish_record()
-        # elif self.main_clip_slot.is_playing:
-        #     for instrument in instruments:
-        #         self.module.select_instrument(self.module.instruments.index(instrument))
-        else:
-            for i in self.instr_clip_slots:
-                clip_slot = i['clip_slot']
-                #Don't record if loop is locked
-                if is_locked and not clip_slot.has_clip:
-                    continue
-                elif clip_slot.is_playing:
-                    self.module.set.base.song().view.detail_clip = i['clip_slot'].clip
-                    self.module.set.base.canonical_parent.application().view.show_view('Detail/Clip')
-                    continue
-                #Don't record if it will stop another clip
-                elif not clip_slot.has_clip and clip_slot.has_stop_button and i['track'].playing_slot_index > -1 and i['track'].has_midi_output:
-                    clip_slot.create_clip(1)
-                else:
-                    #multi clip loop (hold insturment to get one part of it)
-                    if len(instruments) + len(mfx) <= 1 or \
-                    len(self.module.held_instruments) + len(self.module.held_mfx) == 0 or \
-                    i['instrument'] in self.module.held_instruments or \
-                    i['mfx'] in self.module.held_mfx: 
-                        i['clip_slot'].fire()
-                        #if i['clip_slot'].has_clip and i['clip_slot'].has_stop_button:
-                            #self.module.set.base.song().view.detail_clip = i['clip_slot'].clip
-                            #self.module.set.base.canonical_parent.application().view.show_view('Detail/Clip')
+        self.midi_track = None
+        self.midi_clip_slot = None
 
-    def deselect(self):
-        for instrument in self.get_instruments():
-            self.module.deselect_instrument(self.module.instruments.index(instrument))
+        self.audio_track = None
+        self.audio_clip_slot = None
 
-    def stop(self):
-        if self.main_clip_slot.is_recording:
-            self.finish_record()
-        else:
-            for i in self.instr_clip_slots:
-                clip_slot = i['clip_slot']
-                if clip_slot.has_clip:
-                    clip_slot.stop()
+        self.mpe_tracks = []
+        self.mpe_clip_slots = []
 
-    def clear(self):
-        if not self.is_locked():
-            for i in self.instr_clip_slots:
-                if i['clip_slot'].has_clip:
-                    i['clip_slot'].delete_clip()
-                    i['clip_slot'].has_stop_button = 1
+        self.instrument = None
 
-    def mute(self):
-        for i in self.instr_clip_slots:
-            if i['track']:
-                i['track'].mute = 1
+    def all_clip_slots(self):
+        return [self.midi_clip_slot, self.audio_clip_slot] + self.mpe_clip_slots
 
-    def unmute(self):
-        for i in self.instr_clip_slots:
-            if i['track']:
-                i['track'].mute = 0
+    def set_clip(self, clip_slot):
+        if clip_slot.clip.is_audio_clip:
+            clip_slot.duplicate_clip_to(self.audio_clip_slot)
+        elif clip_slot.clip.is_midi_clip:
+            clip_slot.duplicate_clip_to(self.midi_clip_slot)
 
-    def finish_record(self):
-        clip_count = 0
-        for i in self.instr_clip_slots:
-            clip_slot = i['clip_slot']
+    def clear_clips(self):
+        for clip_slot in self.all_clip_slots():
             if clip_slot.has_clip:
-                if (clip_slot.clip.is_midi_clip and not is_empty_clip(clip_slot.clip)) or \
-                (clip_slot.clip.is_audio_clip and i['instrument'].is_armed()):
-                    clip_slot.fire()
-                    clip_count += 1
-                else:
-                    clip_slot.has_stop_button = 0
-                    clip_slot.clip.muted = 1
-        if clip_count == 0:
-            self.clear()
+                clip_slot.delete_clip()
 
-    def get_instruments(self):
-        instruments = set([])
-        for i in self.instr_clip_slots:
-            if i['clip_slot'].has_clip:
-                if not is_empty_clip(i['clip_slot'].clip) and i['clip_slot'].has_stop_button and i['instrument']:
-                    instruments.add(i['instrument'])
-        return instruments
+    def set_instrument(self, instrument):
+        self.instrument = instrument
+        if isinstance(instrument, MidiInstrument):
+            self.midi_track.devices[0].parameters[1].value = instrument.channel.track.devices[0].parameters[1].value
+        elif isinstance(instrument, AudioInstrument):
+            channel_number = int(instrument.channel.track.name[-1])
+            channel_send = self.audio_track.mixer_device.sends[channel_number-1]
+            channel_send.value = channel_send.max
 
-    def get_mfx(self):
-        mfx = set([])
-        for i in self.instr_clip_slots:
-            if i['clip_slot'].has_clip:
-                if not is_empty_clip(i['clip_slot'].clip) and i['mfx']:
-                    mfx.add(i['mfx'])
-        return mfx
+    def clear_instrument(self):
+        self.instrument = None
+        self.midi_track.devices[0].parameters[1].value = 127
+        for channel_send in self.audio_track.mixer_device.sends:
+            channel_send.value = channel_send.min
 
-    def is_locked(self):
-        for i in self.instr_clip_slots:
-            if i['clip_slot'].has_clip and is_locked(i['clip_slot'].clip):
+    def is_playing(self):
+        for clip_slot in self.all_clip_slots():
+            if clip_slot.is_playing: 
                 return True
-        else:
-            return False
+        return False
 
-    def quantize(self):
-        for i in self.instr_clip_slots:
-            if i['clip_slot'].has_clip:
-                i['clip_slot'].clip.quantize(5, 1.0)
+    def is_recording(self):
+        for clip_slot in self.all_clip_slots():
+            if clip_slot.is_recording: 
+                return True
+        return False
 
 
     def log(self, msg):
