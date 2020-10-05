@@ -1,7 +1,7 @@
-from _Instrument import Instrument, MidiInstrument, AudioInstrument, MPEInstrument
+from _Instrument import MidiInstrument, AudioInstrument, AuxInstrument, MPEInstrument
 from _ModuleFX import ModuleFX
 from _Loop import Loop
-from _utils import catch_exception, is_module, is_instrument, is_module_fx, is_loop_scene, get_loop_key, set_output_routing, is_mpe_track
+from _utils import catch_exception, is_module, is_instrument, is_module_fx, is_loop_scene, get_loop_key, set_output_routing, is_mpe_track, is_aux_instrument
 
 class Module:
 
@@ -11,6 +11,8 @@ class Module:
         self.track = track
 
         self.instruments = []
+        self.main_instruments = []
+        self.mfx_instruments = []
 
         set_output_routing(self.track, 'OUTPUT')
 
@@ -19,19 +21,32 @@ class Module:
         m = 0
         while not is_module(self.set.tracks[i]) and self.set.tracks[i].is_grouped:
             if is_instrument(self.set.tracks[i]):
-                if self.set.tracks[i].has_audio_input:
-                    self.instruments.append(AudioInstrument(self.set.tracks[i], self, self.set.audio_channels[a]))
+                instrument_track = self.set.tracks[i]
+                if instrument_track.has_audio_input:
+                    instr = AudioInstrument(instrument_track, self, self.set.audio_channels[a])
+                    self.instruments.append(instr)
+                    self.main_instruments.append(instr)
                     a += 1
-                if self.set.tracks[i].has_midi_input:
-                    if is_mpe_track(self.set.tracks[i]):
-                        self.instruments.append(MPEInstrument(self.set.tracks[i], self, self.set.midi_channels[m]))
+                elif instrument_track.has_midi_input:
+                    if is_module_fx(instrument_track):
+                        mfx_instrument = MidiInstrument(instrument_track, self, self.set.midi_channels[m])
+                        self.instruments.append(mfx_instrument)
+                        self.mfx_instruments.append(mfx_instrument)                     
+                    if is_aux_instrument(instrument_track):
+                        aux_instrument = AuxInstrument(instrument_track, self, self.set.midi_channels[m])
+                        self.instruments.append(aux_instrument)
+                        self.main_instruments[-1].aux_instruments.append(aux_instrument)
+                    elif is_mpe_track(instrument_track):
+                        instr = MPEInstrument(instrument_track, self, self.set.midi_channels[m])
+                        self.instruments.append(instr)
+                        self.main_instruments.append(instr)
                     else:
-                        self.instruments.append(MidiInstrument(self.set.tracks[i], self, self.set.midi_channels[m]))
+                        instr = MidiInstrument(instrument_track, self, self.set.midi_channels[m])
+                        self.instruments.append(instr)
+                        self.main_instruments.append(instr)
                     m += 1
-            elif is_mpe_track(self.set.tracks[i]):
-                self.instruments[-1].mpe_tracks.append(self.set.tracks[i])
-            if self.set.tracks[i].is_foldable:
-                self.set.tracks[i].fold_state = 1
+            # if self.set.tracks[i].is_foldable:
+            #     self.set.tracks[i].fold_state = 1
             i += 1
 
     def activate(self):

@@ -14,8 +14,11 @@ def catch_exception(f):
 def is_module(track):
     return track.name.startswith('M[')
 
+def is_aux_instrument(track):
+    return track.name.startswith('IA')
+
 def is_instrument(track):
-    return track.name.startswith('I[')
+    return track.name.startswith('I[') or is_aux_instrument(track) or is_module_fx(track)
 
 def is_input(track):
     return '_IN' in track.name
@@ -40,6 +43,9 @@ def set_output_routing(track, routing_name):
 def is_loop_scene(scene):
     return 'loop' in scene.name
 
+def is_clip_scene(scene):
+    return scene.name.startswith('CLIP')
+
 def is_midi_channel(track):
     return 'MIDI_CHANNEL' in track.name
 
@@ -57,7 +63,26 @@ def strip_name_params(name):
         return name[0:name.find('[')].strip()
     return name
 
+def is_empty_clip(clip):
+    if clip.is_midi_clip:
+        clip.select_all_notes()
+        if len(clip.get_selected_notes()) > 0 or clip.has_envelopes:
+            return False
+    if clip.is_audio_clip:
+        return False
+    return True
 
+def is_clip_track(track):
+    return track.name == 'CLIP'
+
+def is_module_fx(track):
+    return track.name.startswith('MFX')
+
+def is_gfx(track):
+    return track.name.startswith('GFX')
+
+def is_record(track):
+    return track.name == 'RECORD'
 
 def is_midi_input(track, midi_input_names):
     return track.name.replace('_IN','') in midi_input_names and track.has_midi_output
@@ -67,11 +92,6 @@ def is_audio_input(track, audio_input_names):
 
 
 
-def is_module_fx(track):
-    return track.name.startswith('MFX')
-
-def is_gfx(track):
-    return track.name.startswith('GFX')
 
 def is_cbord_in(track):
     return track.name == 'CBORD_IN'
@@ -82,8 +102,7 @@ def is_as_in(track):
 def is_nanok_in(track):
     return track.name == 'NANOK_IN'
     
-def is_clip_track(track):
-    return track.name == 'CLIP'
+
 
 def is_instr(track):
     return track.name == 'INSTR'
@@ -103,18 +122,7 @@ def index_of_loop_scene(name, scenes):
 def is_locked(clip):
     return 'lock' in clip.name
 
-def is_empty_clip(clip):
-    if clip.is_midi_clip:
-        clip.select_all_notes()
-        if len(clip.get_selected_notes()) > 0 or clip.has_envelopes:
-            return False
-    if clip.is_audio_clip:
-        return False
-    return True
 
-
-def is_record(track):
-    return track.name == 'RECORD'
 
 
 
@@ -146,6 +154,7 @@ color_index_map = {
     1: 'orange',
     20: 'teal',
     24: 'purple',
+    55: 'white'
 }
 
 def color_name(index):

@@ -6,17 +6,15 @@ class Input:
     def __init__(self, track, set):
         self.set = set
         self.track = track
-        self.midi_inputs = []
-        self.audio_inputs = []
 
-        tracks = self.set.tracks
-        i = tracks.index(track) + 1
-        while tracks[i].is_grouped:
-            if tracks[i].is_midi_track:
-                midi_inputs.append(tracks[i])
-            else if tracks[i].is_audio_track:
-                audio_inputs.append(tracks[i])
-            i += 1
+        self.short_name = track.name.replace('_IN','')
+
+    def get_armed_instruments(self):
+        instrs = []
+        for channel in self.set.midi_channels + self.set.audio_channels:
+            if channel.input_is_armed(self.short_name) and channel.current_instrument:
+                instrs.append(channel.current_instrument)
+        return instrs
 
 
     def log(self, msg):

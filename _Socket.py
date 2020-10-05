@@ -43,7 +43,7 @@ class Socket:
         except Exception, e:
             self._socket.sendto(json.dumps(
                 {"event": "error", "data": str(type(e).__name__) + ': ' + str(e.args)}, default=jsonReplace, ensure_ascii=False), self._remote_addr)
-            self.log("Socket Error " + name + "(" + str(uuid) + "): " + str(e))
+            self.log("Socket Error " + name + ": " + str(e))
 
     def process(self):
         try:
