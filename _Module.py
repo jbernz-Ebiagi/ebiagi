@@ -1,7 +1,6 @@
-from _Instrument import MidiInstrument, AudioInstrument, AuxInstrument, MPEInstrument
-from _ModuleFX import ModuleFX
+from _Instrument import MidiInstrument, AudioInstrument, AuxInstrument
 from _Loop import Loop
-from _utils import catch_exception, is_module, is_instrument, is_module_fx, is_loop_scene, get_loop_key, set_output_routing, is_mpe_track, is_aux_instrument
+from _utils import catch_exception, is_module, is_instrument, is_module_fx, is_loop_scene, get_loop_key, set_output_routing, is_aux_instrument
 
 class Module:
 
@@ -23,25 +22,21 @@ class Module:
             if is_instrument(self.set.tracks[i]):
                 instrument_track = self.set.tracks[i]
                 if instrument_track.has_audio_input:
-                    instr = AudioInstrument(instrument_track, self, self.set.audio_channels[a])
+                    instr = AudioInstrument(instrument_track, self, self.set.audio_routers[a])
                     self.instruments.append(instr)
                     self.main_instruments.append(instr)
                     a += 1
                 elif instrument_track.has_midi_input:
                     if is_module_fx(instrument_track):
-                        mfx_instrument = MidiInstrument(instrument_track, self, self.set.midi_channels[m])
+                        mfx_instrument = MidiInstrument(instrument_track, self, self.set.midi_routers[m])
                         self.instruments.append(mfx_instrument)
                         self.mfx_instruments.append(mfx_instrument)                     
-                    if is_aux_instrument(instrument_track):
-                        aux_instrument = AuxInstrument(instrument_track, self, self.set.midi_channels[m])
+                    elif is_aux_instrument(instrument_track):
+                        aux_instrument = AuxInstrument(instrument_track, self, self.set.midi_routers[m])
                         self.instruments.append(aux_instrument)
                         self.main_instruments[-1].aux_instruments.append(aux_instrument)
-                    elif is_mpe_track(instrument_track):
-                        instr = MPEInstrument(instrument_track, self, self.set.midi_channels[m])
-                        self.instruments.append(instr)
-                        self.main_instruments.append(instr)
                     else:
-                        instr = MidiInstrument(instrument_track, self, self.set.midi_channels[m])
+                        instr = MidiInstrument(instrument_track, self, self.set.midi_routers[m])
                         self.instruments.append(instr)
                         self.main_instruments.append(instr)
                     m += 1
@@ -62,6 +57,14 @@ class Module:
             instrument.deactivate()
         self.track.fold_state = 1
         self.track.mute = 1
+
+    def mute_all_loops(self):
+        for instrument in self.instruments:
+            instrument.mute_loops()
+
+    def unmute_all_loops(self):
+        for instrument in self.instruments:
+            instrument.unmute_loops()
 
     def log(self, msg):
         self.set.log(msg)

@@ -31,8 +31,9 @@ class ActionsBase(UserActionsBase):
         self.add_global_action('select_global_loop', self.select_global_loop)
         self.add_global_action('stop_global_loop', self.stop_global_loop)
         self.add_global_action('clear_global_loop', self.clear_global_loop)
-        # self.add_global_action('mute_all_loops', self.mute_all_loops)
-        # self.add_global_action('unmute_all_loops', self.unmute_all_loops)
+        self.add_global_action('toggle_input', self.toggle_input)
+        self.add_global_action('mute_all_loops', self.mute_all_loops)
+        self.add_global_action('unmute_all_loops', self.unmute_all_loops)
 
         self.socket = Socket(self)
 
@@ -123,6 +124,18 @@ class ActionsBase(UserActionsBase):
         self.set.clear_global_loop(index)
 
     @catch_exception
+    def toggle_input(self, action_def, args):
+        self.set.toggle_input(args.upper())
+
+    @catch_exception    
+    def mute_all_loops(self, action_def, args):
+        self.set.active_module.mute_all_loops()
+
+    @catch_exception    
+    def unmute_all_loops(self, action_def, args):
+        self.set.active_module.unmute_all_loops()
+
+    @catch_exception
     def get_state(self):
         if self.set:
 
@@ -171,18 +184,15 @@ class ActionsBase(UserActionsBase):
                     inputs[ipt.short_name] = color_name(instrs[0].track.color_index)
                 else:
                     inputs[ipt.short_name] = 'dark'
+                if ipt.track.mute == 1:
+                    inputs[ipt.short_name] = 'dark'
 
-            #Combine cbord and mpe input colors
-            if inputs['MPE2'] != 'dark' and inputs['CBORD'] == 'dark':
-                inputs['CBORD'] = inputs['MPE2']
-            elif inputs['CBORD'] != inputs['MPE2'] and inputs['CBORD'] != 'dark' and inputs['MPE2'] != 'dark':
-                inputs['CBORD'] = 'white'
 
             for instrument in self.set.active_module.main_instruments:
                 color = color_name(instrument.track.color_index)
                 brightness = 0
                 for name in instrument.input_names:
-                    if instrument.channel.input_is_armed(name):
+                    if instrument.router.input_is_armed(name):
                         brightness = 1
                 instr.append({
                     'index': self.set.active_module.main_instruments.index(instrument),
@@ -193,7 +203,7 @@ class ActionsBase(UserActionsBase):
             for module_fx in self.set.active_module.mfx_instruments:
                 brightness = 0
                 for name in module_fx.input_names:
-                    if instrument.channel.input_is_armed(name):
+                    if module_fx.router.input_is_armed(name):
                         brightness = 1
                 mfx.append({
                     'index': self.set.active_module.mfx_instruments.index(module_fx),

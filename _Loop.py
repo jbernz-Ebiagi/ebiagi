@@ -1,11 +1,12 @@
-from _utils import catch_exception, set_output_routing, is_empty_clip
-from _Instrument import AudioInstrument, MPEInstrument
+from _utils import catch_exception, set_output_routing, is_empty_clip, get_loop_key, on_same_row
+from _Instrument import AudioInstrument
 
 class Loop:
 
     @catch_exception
-    def __init__(self, Set):
+    def __init__(self, Set, name):
         self.set = Set
+        self.name = name
 
         self.midi_track = None
         self.midi_clip_slot = None
@@ -13,21 +14,17 @@ class Loop:
         self.audio_track = None
         self.audio_clip_slot = None
 
-        self.mpe_tracks = []
-        self.mpe_clip_slots = []
-
         self.instrument = None
 
     def all_clip_slots(self):
-        return [self.midi_clip_slot, self.audio_clip_slot] + self.mpe_clip_slots
+        return [self.midi_clip_slot, self.audio_clip_slot]
 
     def clear(self):
-        self.instrument = None
-        self.midi_track.devices[0].parameters[1].value = 0
-        for mpe_track in self.mpe_tracks:
-            mpe_track.devices[0].parameters[1].value = 0
-        for channel_send in self.audio_track.mixer_device.sends:
-            channel_send.value = channel_send.min
+        if self.instrument:
+            self.instrument.deactivate_loop_in_router(self.midi_channel())
+            self.instrument = None
+        for router_send in self.audio_track.mixer_device.sends:
+            router_send.value = router_send.min
         for clip_slot in self.all_clip_slots():
             if clip_slot.has_clip:
                 clip_slot.delete_clip()
@@ -54,31 +51,48 @@ class Loop:
         if self.is_recording():
             self.finish_record()
         elif not self.has_clip():
+            self.log(self.set.held_instruments)
             if len(self.set.held_instruments) > 0:
+                self.check_exclusive()
                 self.record()
         elif self.is_playing():
-            for clip_slot in self.all_clip_slots():
-                if clip_slot.is_playing:
-                    self.module.set.base.song().view.detail_clip = clip_slot.clip
-                    self.module.set.base.canonical_parent.application().view.show_view('Detail/Clip')
-                    return
+            # for clip_slot in self.all_clip_slots():
+            #     if clip_slot.is_playing:
+            #         self.module.set.base.song().view.detail_clip = clip_slot.clip
+            #         self.module.set.base.canonical_parent.application().view.show_view('Detail/Clip')
+            return
         else:
+            self.check_exclusive()
             for clip_slot in self.all_clip_slots():
                 if clip_slot.has_clip:
+                    self.instrument.add_loop_to_router(self.midi_channel())
                     clip_slot.fire()
 
+
     def record(self):
-        next(iter(self.set.held_instruments)).set_loop_channel(self)
+        self.instrument = next(iter(self.set.held_instruments))
         if isinstance(self.instrument, AudioInstrument):
+            self.instrument.set_loop_router(self)
             self.audio_clip_slot.fire()
             if len(self.instrument.aux_instruments) > 0:
+                self.instrument.aux_instruments[0].add_loop_to_router(self.midi_channel())
                 self.midi_clip_slot.fire()
-        elif isinstance(self.instrument, MPEInstrument):
-            for clip_slot in self.mpe_clip_slots:
-                clip_slot.fire()
         else:
+            self.instrument.add_loop_to_router(self.midi_channel())
             self.midi_clip_slot.fire()
 
+    def check_exclusive(self):
+        if self.instrument and self.instrument.exclusive:
+            if self.instrument.exclusive == 'HE':
+                #stop all loops with a shared instrument sharing a horizontal array
+                for loop in self.set.loops:
+                    if self.set.loops[loop].instrument is self.instrument and on_same_row(self.name, loop):
+                        self.set.loops[loop].stop()
+            if self.instrument.exclusive == 'AE':
+                #stop all loops with a shared instrument
+                for loop in self.set.loops:
+                    if self.set.loops[loop].instrument is self.instrument:
+                        self.set.loops[loop].stop()
 
     def finish_record(self):
         for clip_slot in self.all_clip_slots():
@@ -91,6 +105,8 @@ class Loop:
             self.clear()     
 
     def stop(self):
+        if self.instrument:
+            self.instrument.deactivate_loop_in_router(self.midi_channel())
         if self.is_recording():
             self.finish_record()
         else:
@@ -98,5 +114,9 @@ class Loop:
                 if clip_slot.has_clip:
                     clip_slot.stop()
 
+    def midi_channel(self):
+        return self.midi_track.devices[0].parameters[1].value
+
+
     def log(self, msg):
-        self.module.log(msg)
+        self.set.log(msg)

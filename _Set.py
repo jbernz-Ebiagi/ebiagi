@@ -1,12 +1,11 @@
 from threading import Timer
 from ClyphX_Pro.clyphx_pro.UserActionsBase import UserActionsBase
-from _utils import catch_exception, is_module, is_input, is_loop_track, get_loop_key, is_loop_scene, is_midi_channel, is_audio_channel, is_mpe_loop, is_clip_track, is_clip_scene, is_gfx, is_record
+from _utils import catch_exception, is_module, is_input, is_loop_track, get_loop_key, is_loop_scene, is_midi_router, is_audio_router, is_clip_track, is_clip_scene, is_gfx, is_record
 from _Module import Module
 from _Loop import Loop
 from _Clip import Clip
-from _Channel import Channel
+from _Router import MidiRouter, AudioRouter
 from _Input import Input
-from _Instrument import MPEInstrument
 
 class Set(UserActionsBase):
 
@@ -26,41 +25,45 @@ class Set(UserActionsBase):
         self.loops = {}
         self.clips = {}
 
-        self.midi_channels = []
-        self.audio_channels = []
+        self.midi_routers = []
+        self.audio_routers = []
 
         self.global_fx = []
         self.global_loops = []
 
         self.log('Building virtual set...')
 
-        #Add audio channels
+        #Add audio routers
         for track in self.return_tracks:
-            if is_audio_channel(track):
-                self.audio_channels.append(Channel(track, self))
+            if is_audio_router(track):
+                self.audio_routers.append(AudioRouter(track, self))
+
+        channel = 0
+        for track in self.tracks:
+            #Add inputs
+            if is_input(track):
+                ipt = Input(track, self)
+                self.inputs[track.name.replace('_IN','')] = ipt
+                if track.has_midi_output:
+                    ipt.set_channel(channel)
+                    channel += 1
 
         for track in self.tracks:
 
-            #Add modules
-            if is_module(track):
-                self.modules.append(Module(track, self))
-
-            #Add inputs
-            if is_input(track):
-                self.inputs[track.name.replace('_IN','')] = Input(track, self)
-
             #Build empty loop structure
-            if is_loop_track(track) or is_mpe_loop(track):
+            if is_loop_track(track):
                 i = 0
+
+                if track.has_midi_output:
+                    track.devices[0].parameters[1].value = channel
+                    channel += 1
+
                 while i < len(self.scenes):
                     if track.clip_slots[i].has_stop_button:
                         loop_name = get_loop_key(self.scenes[i].name)
                         if not loop_name in self.loops:
-                            self.loops[loop_name] = Loop(self)
-                        if is_mpe_loop(track):
-                            self.loops[loop_name].mpe_tracks.append(track)
-                            self.loops[loop_name].mpe_clip_slots.append(track.clip_slots[i])
-                        elif track.has_midi_output:
+                            self.loops[loop_name] = Loop(self, loop_name)
+                        if track.has_midi_output:
                             self.loops[loop_name].midi_track = track
                             self.loops[loop_name].midi_clip_slot = track.clip_slots[i]
                         elif track.has_audio_output:
@@ -70,6 +73,11 @@ class Set(UserActionsBase):
 
             if is_clip_track(track):
                 i = 0
+
+                if track.has_midi_output:
+                    track.devices[0].parameters[1].value = channel
+                    channel += 1
+
                 clip_name = None
                 while i < len(self.scenes):
                     if self.scenes[i].name == 'STOPCLIP' and track.clip_slots[i].has_clip:
@@ -89,6 +97,10 @@ class Set(UserActionsBase):
                             self.clips[clip_name].audio_clip_slot = track.clip_slots[i]
                     i += 1
 
+            #Add modules
+            if is_module(track):
+                self.modules.append(Module(track, self))
+
             if is_gfx(track):
                 self.global_fx.append(track)
 
@@ -98,9 +110,9 @@ class Set(UserActionsBase):
                         self.global_loops.append(clip_slot)
 
 
-            #Add midi channels
-            if is_midi_channel(track):
-                self.midi_channels.append(Channel(track, self))
+            #Add midi routers
+            if is_midi_router(track):
+                self.midi_routers.append(MidiRouter(track, self))
 
 
         for module in self.modules:
@@ -147,20 +159,17 @@ class Set(UserActionsBase):
                     key = get_loop_key(self.scenes[i].name)
                     if instrument.has_clip(i):
                         instrument.transfer_clip(self.loops[key], i)
-                        instrument.set_loop_channel(self.loops[key])
                 i += 1
 
     def map_clips(self, module):
         for instrument in module.main_instruments:
-            if not isinstance(instrument, MPEInstrument):
-                i = 0
-                while i < len(self.scenes):
-                    if is_clip_scene(self.scenes[i]):
-                        key = self.scenes[i].name
-                        if instrument.has_clip(i):
-                            instrument.transfer_clip(self.clips[key], i)
-                            instrument.set_loop_channel(self.clips[key])
-                    i += 1
+            i = 0
+            while i < len(self.scenes):
+                if is_clip_scene(self.scenes[i]):
+                    key = self.scenes[i].name
+                    if instrument.has_clip(i):
+                        instrument.transfer_clip(self.clips[key], i)
+                i += 1
 
     def select_instrument(self, index):
         self.held_instruments.add(self.active_module.main_instruments[index])
@@ -185,13 +194,11 @@ class Set(UserActionsBase):
         self.arm_instruments_and_fx()
 
     def select_gfx(self, index):
-        self.log('select')
         self.global_fx[index].arm = 1
-        for channel in self.midi_channels:
-            channel.mute_as()
+        for router in self.midi_routers:
+            router.force_disarm('AS')
 
     def deselect_gfx(self, index):
-        self.log('deselect')
         self.global_fx[index].arm = 0
 
     def arm_instruments_and_fx(self):
@@ -237,6 +244,13 @@ class Set(UserActionsBase):
 
     def setCrossfadeRight(self):
         self.global_fx[1].clip_slots[1].fire()
+
+    def toggle_input(self, input_name):
+        if input_name == 'LINE':
+            if self.inputs['LINE'].track.mute == 0:
+                self.inputs['LINE'].track.mute = 1
+            else:
+                self.inputs['LINE'].track.mute = 0
 
     def log(self, message):
         self.base.canonical_parent.log_message(message)
