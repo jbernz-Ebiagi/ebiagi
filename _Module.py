@@ -13,12 +13,18 @@ class Module:
         self.main_instruments = []
         self.mfx_instruments = []
 
+        self.snaps = self.track.get_data('snaps', False)
+        if not self.snaps:
+            self.snaps = [[],[],[],[],[],[]]
+        self.log(self.snaps)
+
         set_output_routing(self.track, 'OUTPUT')
 
         i = self.set.tracks.index(track) + 1
         a = 0
         m = 0
         while not is_module(self.set.tracks[i]) and self.set.tracks[i].is_grouped:
+
             if is_instrument(self.set.tracks[i]):
                 instrument_track = self.set.tracks[i]
                 if instrument_track.has_audio_input:
@@ -40,6 +46,12 @@ class Module:
                         self.instruments.append(instr)
                         self.main_instruments.append(instr)
                     m += 1
+
+            for snap in self.snaps:
+                for snap_param in snap:
+                    if snap_param['track_name'] == self.set.tracks[i].name:
+                        snap_param['param'] = self.set.tracks[i].devices[0].parameters[snap_param['index']]
+            
             # if self.set.tracks[i].is_foldable:
             #     self.set.tracks[i].fold_state = 1
             i += 1
@@ -65,6 +77,20 @@ class Module:
     def unmute_all_loops(self):
         for instrument in self.instruments:
             instrument.unmute_loops()
+
+    def save_snaps(self):
+        saveable_snaps = [[],[],[],[],[],[]]
+        i = 0
+        for snap in self.snaps:
+            for snap_param in snap:
+                saveable_snaps[i].append({
+                    'value': snap_param['value'],
+                    'track_name': snap_param['track_name'],
+                    'index': snap_param['index']
+                })
+            i += 1
+        self.track.set_data('snaps', saveable_snaps)
+        self.log(self.track.get_data('snaps', False))
 
     def log(self, msg):
         self.set.log(msg)

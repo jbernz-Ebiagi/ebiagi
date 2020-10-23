@@ -58,10 +58,14 @@ class MidiInstrument:
         self.router.disarm()
 
     def mute_loops(self):
-        self.router.mute_loops()
+        for loop in self.module.set.loops:
+            if self.module.set.loops[loop].instrument is self:
+                self.module.set.loops[loop].mute()
 
     def unmute_loops(self):
-        self.router.unmute_loops()
+        for loop in self.module.set.loops:
+            if self.module.set.loops[loop].instrument is self:
+                self.module.set.loops[loop].unmute()
 
     def log(self, msg):
         self.module.log(msg)
@@ -88,7 +92,7 @@ class AudioInstrument(MidiInstrument):
 
     def add_loop_to_router(self, loop):
         if len(self.aux_instruments) > 0:
-            self.aux_instruments[0].router.add_loop_to_router(loop)
+            self.aux_instruments[0].router.add_loop(loop)
 
     def deactivate_loop_in_router(self, loop):
         if len(self.aux_instruments) > 0:

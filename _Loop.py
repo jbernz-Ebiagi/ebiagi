@@ -70,6 +70,8 @@ class Loop:
 
 
     def record(self):
+        self.midi_track.arm = 1
+        self.audio_track.arm = 1
         self.instrument = next(iter(self.set.held_instruments))
         if isinstance(self.instrument, AudioInstrument):
             self.instrument.set_loop_router(self)
@@ -113,6 +115,14 @@ class Loop:
             for clip_slot in self.all_clip_slots():
                 if clip_slot.has_clip:
                     clip_slot.stop()
+
+    def mute(self):
+        self.midi_track.devices[0].parameters[0].value = 0
+        self.audio_track.mute = 1
+
+    def unmute(self):
+        self.midi_track.devices[0].parameters[0].value = 1
+        self.audio_track.mute = 0
 
     def midi_channel(self):
         return self.midi_track.devices[0].parameters[1].value

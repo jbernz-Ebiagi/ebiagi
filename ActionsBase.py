@@ -18,6 +18,7 @@ class ActionsBase(UserActionsBase):
         self.add_global_action('activate_module', self.activate_module)
         self.add_global_action('select_instrument', self.select_instrument)
         self.add_global_action('deselect_instrument', self.deselect_instrument)
+        self.add_global_action('stop_instrument', self.stop_instrument)
         self.add_global_action('select_loop', self.select_loop)
         self.add_global_action('stop_loop', self.stop_loop)
         self.add_global_action('stop_all_loops', self.stop_all_loops)
@@ -34,10 +35,15 @@ class ActionsBase(UserActionsBase):
         self.add_global_action('toggle_input', self.toggle_input)
         self.add_global_action('mute_all_loops', self.mute_all_loops)
         self.add_global_action('unmute_all_loops', self.unmute_all_loops)
+        self.add_global_action('recall_snap', self.recall_snap)
+        self.add_global_action('select_snap', self.select_snap)
+        self.add_global_action('deselect_snap', self.deselect_snap)
+        self.add_global_action('assign_snap', self.assign_snap)
 
         self.socket = Socket(self)
 
-        start_scheduler()
+        self.log(self.value_ramper)
+
         
 
     @catch_exception
@@ -59,6 +65,11 @@ class ActionsBase(UserActionsBase):
     def deselect_instrument(self, action_def, args):
         index = int(args[-1]) - 1
         self.set.deselect_instrument(index)
+
+    @catch_exception
+    def stop_instrument(self, action_def, args):
+        index = int(args[-1]) - 1
+        self.set.stop_instrument(index)
 
     @catch_exception
     def select_mfx(self, action_def, args):
@@ -135,12 +146,32 @@ class ActionsBase(UserActionsBase):
     def unmute_all_loops(self, action_def, args):
         self.set.active_module.unmute_all_loops()
 
+    @catch_exception    
+    def recall_snap(self, action_def, args):
+        self.set.recall_snap()
+
+    @catch_exception    
+    def select_snap(self, action_def, args):
+        index = int(args[-1]) - 1
+        self.set.select_snap(index)
+
+    @catch_exception    
+    def deselect_snap(self, action_def, args):
+        index = int(args[-1]) - 1
+        self.set.select_snap(index)
+
+    @catch_exception    
+    def assign_snap(self, action_def, args):
+        index = int(args[-1]) - 1
+        self.set.assign_snap(index)
+
     @catch_exception
     def get_state(self):
-        if self.set:
+        if self.set and not self.set.loading:
 
             modules = []
             loops = []
+            clips = []
             instr = []
             inputs = {}
 
@@ -170,6 +201,22 @@ class ActionsBase(UserActionsBase):
                     brightness = 1
                 loops.append({
                     'key_name': key,
+                    'color': color, 
+                    'brightness': brightness,
+                })
+
+            for key in self.set.clips:
+                clip = self.set.clips[key]
+                instrument = clip.instrument
+                if clip.instrument and clip.has_clip():
+                    color = color_name(clip.instrument.track.color_index)
+                else:
+                    color = 'dark'
+                brightness = 0
+                if clip.is_playing():
+                    brightness = 1
+                clips.append({
+                    'clip_name': key,
                     'color': color, 
                     'brightness': brightness,
                 })
@@ -236,6 +283,7 @@ class ActionsBase(UserActionsBase):
                 'inputs': inputs,
                 'modules': modules,
                 'loops': loops,
+                'clips': clips,
                 'mfx': mfx,
                 'gfx': gfx,
                 'globalLoops': global_loops

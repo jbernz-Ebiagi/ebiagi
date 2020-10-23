@@ -1,11 +1,12 @@
 from threading import Timer
 from ClyphX_Pro.clyphx_pro.UserActionsBase import UserActionsBase
-from _utils import catch_exception, is_module, is_input, is_loop_track, get_loop_key, is_loop_scene, is_midi_router, is_audio_router, is_clip_track, is_clip_scene, is_gfx, is_record
+from _utils import catch_exception, is_module, is_input, is_loop_track, get_loop_key, is_loop_scene, is_midi_router, is_audio_router, is_clip_track, is_clip_scene, is_gfx, is_record, is_snap_track
 from _Module import Module
 from _Loop import Loop
 from _Clip import Clip
 from _Router import MidiRouter, AudioRouter
 from _Input import Input
+from _SnapFX import SnapFX
 
 class Set(UserActionsBase):
 
@@ -13,6 +14,7 @@ class Set(UserActionsBase):
         self.base = ActionsBase
         self.tracks = list(self.base.song().tracks)
         self.return_tracks = list(self.base.song().return_tracks)
+        self.master_track = self.base.song().master_track
         self.scenes = list(self.base.song().scenes)
 
         self.modules = []
@@ -31,7 +33,11 @@ class Set(UserActionsBase):
         self.global_fx = []
         self.global_loops = []
 
+        self.snap_fx = None
+        self.selected_snap = None
+
         self.log('Building virtual set...')
+        self.loading = True
 
         #Add audio routers
         for track in self.return_tracks:
@@ -109,6 +115,8 @@ class Set(UserActionsBase):
                     if clip_slot.has_stop_button:
                         self.global_loops.append(clip_slot)
 
+            if is_snap_track(track):
+                self.snap_fx = SnapFX(track, self)
 
             #Add midi routers
             if is_midi_router(track):
@@ -119,6 +127,10 @@ class Set(UserActionsBase):
             module.deactivate()
         self.activate_module(0)
 
+        self.setCrossfadeB()
+
+        self.log('...finished building set')
+        self.loading = False
 
     def activate_module(self, index):
         if self.modules[index]:
@@ -126,8 +138,9 @@ class Set(UserActionsBase):
 
                 if self.active_module:
                     self.active_module.deactivate()
-                    self.clear_loops()
-                    self.clear_clips()
+                self.clear_loops()
+                self.clear_clips()
+                self.clear_routers()
 
                 self.modules[index].activate()
                 self.map_loops(self.modules[index])
@@ -151,8 +164,12 @@ class Set(UserActionsBase):
         for key in self.clips:
             self.clips[key].clear()
 
+    def clear_routers(self):
+        for router in self.midi_routers:
+            router.clear_loops()
+
     def map_loops(self, module):
-        for instrument in module.main_instruments:
+        for instrument in module.main_instruments + module.mfx_instruments:
             i = 0
             while i < len(self.scenes):
                 if is_loop_scene(self.scenes[i]):
@@ -162,7 +179,7 @@ class Set(UserActionsBase):
                 i += 1
 
     def map_clips(self, module):
-        for instrument in module.main_instruments:
+        for instrument in module.main_instruments + module.mfx_instruments:
             i = 0
             while i < len(self.scenes):
                 if is_clip_scene(self.scenes[i]):
@@ -173,16 +190,17 @@ class Set(UserActionsBase):
 
     def select_instrument(self, index):
         self.held_instruments.add(self.active_module.main_instruments[index])
-        for instr in self.active_module.main_instruments[index].aux_instruments:
-            self.held_instruments.add(instr)
         self.arm_instruments_and_fx()
 
     def deselect_instrument(self, index):
         if self.active_module.main_instruments[index] in self.held_instruments:
             self.held_instruments.remove(self.active_module.main_instruments[index])
-            for instr in self.active_module.main_instruments[index].aux_instruments:
-                self.held_instruments.remove(instr)
         self.arm_instruments_and_fx()
+
+    def stop_instrument(self, index):
+        for loop in self.loops:
+            if self.loops[loop].instrument is self.active_module.main_instruments[index]:
+                self.loops[loop].stop()
 
     def select_mfx(self, index):
         self.held_instruments.add(self.active_module.mfx_instruments[index])
@@ -229,7 +247,7 @@ class Set(UserActionsBase):
 
     def select_global_loop(self, index):
         if self.global_loops[index].is_playing:
-            self.setCrossfadeLeft()
+            self.setCrossfadeA()
         self.global_loops[index].fire()
 
     def stop_global_loop(self, index):
@@ -237,13 +255,47 @@ class Set(UserActionsBase):
 
     def clear_global_loop(self, index):
         self.global_loops[index].delete_clip()
-        self.setCrossfadeRight()
+        self.setCrossfadeB()
 
-    def setCrossfadeLeft(self):
-        self.global_fx[1].clip_slots[0].fire()
+    def setCrossfadeA(self):
+        self.master_track.mixer_device.crossfader.value = -1.0
 
-    def setCrossfadeRight(self):
-        self.global_fx[1].clip_slots[1].fire()
+    def setCrossfadeB(self):
+        self.master_track.mixer_device.crossfader.value = 1.0
+
+    def recall_snap(self):
+        if self.selected_snap:
+            for snap_param in self.selected_snap:
+                #snap_param['param'].value = snap_param['value']
+                self.base.value_ramper.ramp_parameter(snap_param['param'], snap_param['value'], 1, True)
+            self.message('Loaded snap %s' % (index+1))
+
+    def select_snap(self, index):
+        self.selected_snap = self.active_module.snaps[index]
+        self.snap_fx.set_snap_map(self.active_module.snaps[index])
+
+    def deselect_snap(self, index):
+        self.selected_snap = None
+        self.snap_fx.set_snap_map([])
+
+    def assign_snap(self, index):
+        param = self.base.song().view.selected_parameter
+        track = self.base.song().view.selected_track
+        track_params = list(track.devices[0].parameters)
+
+        if not param in track_params:
+            self.message('Snaps params must be within a track\'s first device')
+            return
+
+        snap_param = {
+            'param': param,
+            'value': param.value,
+            'track_name': track.name,
+            'index': track_params.index(param)
+        }
+        self.active_module.snaps[index].append(snap_param)
+        self.message('Snap parameter %s added at %s' % (param.name, param.value))
+        self.active_module.save_snaps()
 
     def toggle_input(self, input_name):
         if input_name == 'LINE':
@@ -254,3 +306,6 @@ class Set(UserActionsBase):
 
     def log(self, message):
         self.base.canonical_parent.log_message(message)
+
+    def message(self, message):
+        self.base.canonical_parent.show_message(message)

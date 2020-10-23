@@ -35,6 +35,9 @@ def is_loop_track(track):
 def get_loop_key(name):
     return name[len('loop['):-len(']')]
 
+def is_snap_track(track):
+    return track.name == 'SNAPS'
+
 def set_output_routing(track, routing_name):
     for routing in track.available_output_routing_types:
         if routing.display_name == routing_name:
