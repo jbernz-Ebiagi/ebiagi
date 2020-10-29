@@ -34,7 +34,6 @@ class Set(UserActionsBase):
         self.global_loops = []
 
         self.snap_fx = None
-        self.selected_snap = None
 
         self.log('Building virtual set...')
         self.loading = True
@@ -131,6 +130,7 @@ class Set(UserActionsBase):
 
         self.log('...finished building set')
         self.loading = False
+
 
     def activate_module(self, index):
         if self.modules[index]:
@@ -263,39 +263,26 @@ class Set(UserActionsBase):
     def setCrossfadeB(self):
         self.master_track.mixer_device.crossfader.value = 1.0
 
-    def recall_snap(self):
-        if self.selected_snap:
-            for snap_param in self.selected_snap:
-                #snap_param['param'].value = snap_param['value']
-                self.base.value_ramper.ramp_parameter(snap_param['param'], snap_param['value'], 1, True)
-            self.message('Loaded snap %s' % (index+1))
+    def recall_snap(self, beats):
+        self.snap_fx.recall_snap(beats)
 
     def select_snap(self, index):
-        self.selected_snap = self.active_module.snaps[index]
-        self.snap_fx.set_snap_map(self.active_module.snaps[index])
+        self.snap_fx.select_snap(self.active_module.snaps[index])
+        for router in self.midi_routers:
+            router.force_disarm('AS')
 
     def deselect_snap(self, index):
-        self.selected_snap = None
-        self.snap_fx.set_snap_map([])
+        self.snap_fx.deselect_snap()
 
     def assign_snap(self, index):
         param = self.base.song().view.selected_parameter
         track = self.base.song().view.selected_track
-        track_params = list(track.devices[0].parameters)
+        self.snap_fx.assign_snap(self.active_module.snaps[index], param, track)
 
-        if not param in track_params:
-            self.message('Snaps params must be within a track\'s first device')
-            return
-
-        snap_param = {
-            'param': param,
-            'value': param.value,
-            'track_name': track.name,
-            'index': track_params.index(param)
-        }
-        self.active_module.snaps[index].append(snap_param)
-        self.message('Snap parameter %s added at %s' % (param.name, param.value))
+    def clear_snap(self, index):
+        self.active_module.snaps[index] = []
         self.active_module.save_snaps()
+        self.message('Cleared snap %s' % str(index+1))
 
     def toggle_input(self, input_name):
         if input_name == 'LINE':

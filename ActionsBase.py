@@ -39,6 +39,7 @@ class ActionsBase(UserActionsBase):
         self.add_global_action('select_snap', self.select_snap)
         self.add_global_action('deselect_snap', self.deselect_snap)
         self.add_global_action('assign_snap', self.assign_snap)
+        self.add_global_action('clear_snap', self.clear_snap)
 
         self.socket = Socket(self)
 
@@ -148,7 +149,10 @@ class ActionsBase(UserActionsBase):
 
     @catch_exception    
     def recall_snap(self, action_def, args):
-        self.set.recall_snap()
+        beats = 0
+        if args:
+            beats = 4*2**(int(args[-1]) - 1)
+        self.set.recall_snap(beats)
 
     @catch_exception    
     def select_snap(self, action_def, args):
@@ -158,12 +162,17 @@ class ActionsBase(UserActionsBase):
     @catch_exception    
     def deselect_snap(self, action_def, args):
         index = int(args[-1]) - 1
-        self.set.select_snap(index)
+        self.set.deselect_snap(index)
 
     @catch_exception    
     def assign_snap(self, action_def, args):
         index = int(args[-1]) - 1
         self.set.assign_snap(index)
+
+    @catch_exception    
+    def clear_snap(self, action_def, args):
+        index = int(args[-1]) - 1
+        self.set.clear_snap(index)
 
     @catch_exception
     def get_state(self):
@@ -178,6 +187,7 @@ class ActionsBase(UserActionsBase):
             mfx = []
             gfx = []
             global_loops = []
+            snaps = []
 
             for module in self.set.modules:
                 color = color_name(module.track.color_index)
@@ -278,6 +288,15 @@ class ActionsBase(UserActionsBase):
                     'brightness': brightness,
                 })
 
+            for snap in self.set.active_module.snaps:
+                color = 'blue' if snap is self.set.snap_fx.selected_snap else 'white'
+                brightness = 1 if len(snap) > 0 else 0
+                snaps.append({
+                    'index': self.set.active_module.snaps.index(snap),
+                    'color': color, 
+                    'brightness': brightness,
+                })
+
             return {
                 'instr': instr,
                 'inputs': inputs,
@@ -286,7 +305,8 @@ class ActionsBase(UserActionsBase):
                 'clips': clips,
                 'mfx': mfx,
                 'gfx': gfx,
-                'globalLoops': global_loops
+                'globalLoops': global_loops,
+                'snaps': snaps
             }
 
         else:
