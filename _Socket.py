@@ -1,13 +1,14 @@
 import socket
 import json
 from threading import Timer
-from _utils import catch_exception
+from _EbiagiComponent import EbiagiComponent
 
-class Socket:
+class Socket(EbiagiComponent):
 
-    @catch_exception
-    def __init__(self, ActionsBase):
-        self.base = ActionsBase
+    def __init__(self, base):
+        super(Socket, self).__init__()
+
+        self.base = base
 
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._socket.setblocking(0)
@@ -22,7 +23,6 @@ class Socket:
             self.base.canonical_parent.schedule_message(1, parse)
         parse()
 
-
     def bind(self):
         try:
             self._socket.bind(self._local_addr)
@@ -32,7 +32,6 @@ class Socket:
             self.log(msg)
             t = Timer(5, self.bind)
             t.start()
-
 
     def send(self, name, obj=None):
         def jsonReplace(o):
@@ -58,13 +57,10 @@ class Socket:
             self.log("Error: " + str(e.args))
 
     def input_handler(self, payload):
-        # self.log(payload)
         if payload['event'] == 'get_state':
             state = self.base.get_state()
             self.send('give_state', state)
 
-    def shutdown(self):
+    def disconnect(self):
+        super(Socket, self).disconnect()
         self._socket.close()
-
-    def log(self, msg):
-        self.base.log(msg)

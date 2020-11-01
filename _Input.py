@@ -1,26 +1,14 @@
-from _utils import catch_exception
+from _EbiagiComponent import EbiagiComponent
+from _naming_conventions import *
 
-class Input:
+class Input(EbiagiComponent):
 
-    @catch_exception
-    def __init__(self, track, set):
-        self.set = set
+    def __init__(self, track, Set):
+        super(Input, self).__init__()
         self.track = track
-        self.channel = None
-        self.short_name = track.name.replace('_IN','')
+        self.set = Set
 
-    def get_armed_instruments(self):
-        instrs = []
-        for router in self.set.midi_routers + self.set.audio_routers:
-            if router.input_is_armed(self.short_name) and router.current_instrument:
-                instrs.append(router.current_instrument)
-        return instrs
+        self.short_name = get_short_name(track.name)
 
-    def set_channel(self, channel):
-        self.channel = channel
-        if self.track.has_midi_output:
-            self.track.devices[0].parameters[1].value = channel
+        self.log('Initializing Input %s...' % self.short_name)
 
-
-    def log(self, msg):
-        self.set.log(msg)
