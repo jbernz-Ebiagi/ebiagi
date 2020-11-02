@@ -20,6 +20,9 @@ def is_ex_instrument_track(name):
 
 def is_source_track(name):
     return name.endswith('[S]')
+
+def is_loop(name):
+    return name.startswith('loop[')
     
 def get_short_name(name):
-    return re.search(r"\[([A-Za-z0-9_,]+)\]", name).group(1)
+    return re.search(r"\[([A-Za-z0-9_,-.]+)\]", name).group(1)
