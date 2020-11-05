@@ -1,5 +1,6 @@
 from _EbiagiComponent import EbiagiComponent
 from _naming_conventions import *
+from _utils import is_empty_midi_clip
 
 class Loop(EbiagiComponent):
 
@@ -30,7 +31,6 @@ class Loop(EbiagiComponent):
     def select(self):
         if self.is_recording():
             self._finish_record()
-            self._main_clip_slot.fire()
         elif self.is_playing():
             #self.display_first_clip()
             return
@@ -55,7 +55,13 @@ class Loop(EbiagiComponent):
                 clip_slot.clear()
 
     def _finish_record(self):
-        self.log('')
+        has_clip = False
+        for clip_slot in self._clip_slots:
+            if clip_slot.is_recording():
+                if clip_slot.finish_record():
+                    has_clip = True
+        if not has_clip:
+            self.clear()
 
     def can_record(self):
         will_record = False
@@ -101,14 +107,36 @@ class ClipSlot:
     def is_clearable(self):
         return self._slot.has_clip and 'CAN_CLEAR' in self._slot.clip.name
 
+    def is_recording(self):
+        return self._slot.is_recording
+
+    def finish_record(self):
+        self._slot.clip.name = 'CAN_CLEAR'
+        if self._slot.clip.is_midi_clip:
+            if is_empty_midi_clip(self._slot.clip):
+                self.deactivate_clip()
+                return False
+        if self._slot.clip.is_audio_clip:
+            if not self._instrument.audio_in_armed():
+                self.deactivate_clip()
+                return False
+        self._slot.fire()
+        return True
+
+    def deactivate_clip(self):
+        self._slot.clip.muted = 1
+        self._slot.has_stop_button = 0
+
     def clear(self):
         if self._slot.has_clip:
             self._slot.delete_clip()
+            self._slot.has_stop_button = 1
 
     def run_select_commands(self):
         if self._slot.has_clip:
             if 'SELECT' in self._slot.clip.name:
-                Set.select_instrument(None, self._instrument)
+                self._set.select_instrument(None, self._instrument)
+                self._set.deselect_instrument(None, self._instrument)
     
     def run_deselect_commands(self):
         if self._slot.has_clip:

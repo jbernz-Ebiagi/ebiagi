@@ -9,6 +9,15 @@ def is_midi_router(name):
 def is_audio_router(name):
     return name.startswith('AR[')
 
+def is_global_instrument(name):
+    return name.startswith('GI[')
+
+def is_global_loop_track(name):
+    return name == 'GLOBAL_LOOP'
+
+def is_snap_control(name):
+    return get_short_name(name) == 'SNAP_CONTROL'
+
 def is_module(name):
     return name.startswith('M[')
     
@@ -25,4 +34,8 @@ def is_loop(name):
     return name.startswith('loop[')
     
 def get_short_name(name):
-    return re.search(r"\[([A-Za-z0-9_,-.]+)\]", name).group(1)
+    res = re.search(r"\[([A-Za-z0-9_ ,-.]+)\]", name)
+    if res:
+        return re.search(r"\[([A-Za-z0-9_ ,-.]+)\]", name).group(1)
+    else:
+        return None

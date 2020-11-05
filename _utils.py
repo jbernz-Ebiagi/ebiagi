@@ -24,3 +24,12 @@ def set_output_routing(track, routing_name):
     for routing in track.available_output_routing_types:
         if routing.display_name == routing_name:
             track.output_routing_type = routing
+
+def is_empty_midi_clip(clip):
+    if clip.is_midi_clip:
+        clip.select_all_notes()
+        if len(clip.get_selected_notes()) > 0 or clip.has_envelopes:
+            return False
+    if clip.is_audio_clip:
+        return False
+    return True

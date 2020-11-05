@@ -103,10 +103,26 @@ class Instrument(EbiagiComponent):
         return False
 
     def has_track(self, track):
-        return track is self._track or track in self._ex_midi or track in self._ex_audio
+        return track in [self._track] + self._ex_midi + self._ex_audio
 
     def has_midi_input(self):
         return len(self._midi_inputs) > 0
 
     def has_audio_input(self):
         return len(self._audio_inputs) > 0
+
+    def audio_in_armed(self):
+        for ipt in self._audio_inputs:
+            if ipt.has_instrument(self) and ipt.is_active():
+                return True
+        return False
+
+    def mute_loops(self):
+        for track in [self._track] + self._ex_midi + self._ex_audio:
+            if not is_source_track(track.name):
+                track.current_monitoring_state = 0
+
+    def unmute_loops(self):
+        for track in [self._track] + self._ex_midi + self._ex_audio:
+            if not is_source_track(track.name):
+                track.current_monitoring_state = 1
