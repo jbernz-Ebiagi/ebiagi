@@ -78,7 +78,6 @@ class Set(EbiagiComponent):
                 self.modules.append(module)
                 module.deactivate()
 
-
         if len(self.modules):
             self.activate_module(0)
             self.loading = False
@@ -90,6 +89,9 @@ class Set(EbiagiComponent):
 
                 if self.active_module:
                     self.active_module.deactivate()
+
+                for router in self.midi_routers and self.audio_routers:
+                    router.set_instrument(None)
 
                 self.modules[index].activate()
                 self.active_module = self.modules[index]
@@ -104,6 +106,7 @@ class Set(EbiagiComponent):
     def select_instrument(self, index, instrument=None):
         if not instrument:
             instrument = self.active_module.instruments[index]
+        self.log(instrument.short_name)
         self.held_instruments.add(instrument)
         instrument.select()
         self._update_routers()
@@ -115,6 +118,11 @@ class Set(EbiagiComponent):
             self.held_instruments.remove(instrument)
         instrument.deselect()
         self._update_routers()
+
+    def stop_instrument(self, index, instrument=None):
+        if not instrument:
+            instrument = self.active_module.instruments[index]       
+        instrument.stop()
 
     def select_loop(self, key):
         self.active_module.loops[key].select()
@@ -131,6 +139,9 @@ class Set(EbiagiComponent):
 
     def clear_loop(self, key):
         self.active_module.loops[key].clear()
+
+    def quantize_loop(self, key):
+        self.active_module.loops[key].quantize()
 
     def mute_all_loops(self):
         instrs = self.held_instruments if len(self.held_instruments) > 0 else self.active_module.instruments
@@ -185,6 +196,14 @@ class Set(EbiagiComponent):
 
     def toggle_metronome(self):
         self._song.metronome = not self._song.metronome
+
+    #TODO: Performance can be improved by mapping names
+    def get_scene_index(self, name):
+        i = 0
+        for scene in self._song.scenes:
+            if name == scene.name:
+                return i
+            i += 1
 
     def _update_routers(self):
         for ipt in self.inputs.values():

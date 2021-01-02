@@ -48,8 +48,12 @@ class Instrument(EbiagiComponent):
         if len(self._track.devices) > 0:
             self._track.devices[0].parameters[0].value = 1
             for track in [self._track] + self._ex_midi + self._ex_audio:
-                if track.can_be_armed:
-                    track.arm = 1 
+                self.log(track.name)
+                self.set_default_monitoring_state(track)
+        if self._midi_router:
+            self._midi_router.set_instrument(self)
+        if self._audio_router:
+            self._audio_router.set_instrument(self)
 
     def deactivate(self):
         if len(self._track.devices) > 0:
@@ -95,7 +99,11 @@ class Instrument(EbiagiComponent):
 
     def _assign_to_router(self, track, router):
         if is_source_track(track.name):
+            set_input_routing(track, 'No Input')
             set_output_routing(track, router._track.name)
+        elif is_compiled_track(track.name):
+            set_output_routing(track, self._track.output_routing_type.display_name)
+            set_input_routing(track, self._track.name)
         else:
             set_input_routing(track, router._track.name)
 
@@ -111,18 +119,35 @@ class Instrument(EbiagiComponent):
     def has_audio_input(self):
         return len(self._audio_inputs) > 0
 
+    def is_selected(self):
+        return self in self._set.held_instruments
+
     def audio_in_armed(self):
         for ipt in self._audio_inputs:
             if ipt.has_instrument(self) and ipt.is_active():
                 return True
         return False
 
+    def stop(self):
+        for track in [self._track] + self._ex_midi + self._ex_audio:
+            track.stop_all_clips()     
+
     def mute_loops(self):
         for track in [self._track] + self._ex_midi + self._ex_audio:
             if not is_source_track(track.name):
                 track.current_monitoring_state = 0
+                track.arm = 0
 
     def unmute_loops(self):
         for track in [self._track] + self._ex_midi + self._ex_audio:
-            if not is_source_track(track.name):
-                track.current_monitoring_state = 1
+            self.set_default_monitoring_state(track)
+
+    def set_default_monitoring_state(self, track):
+        if is_source_track(track.name):
+            track.current_monitoring_state = 2
+        elif is_compiled_track(track.name):
+            track.current_monitoring_state = 2
+            track.arm = 1
+        else:
+            track.current_monitoring_state = 1
+            track.arm = 1

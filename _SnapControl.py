@@ -41,7 +41,7 @@ class SnapControl(Instrument):
         for snap_param in snap.snap_params:
             s = {
                 'param': snap_param.param,
-                'starting_value': snap_param.value,
+                'starting_value': snap_param.param.value,
                 'diff': snap_param.value - snap_param.param.value
             }
             self._snap_map.append(s)
@@ -58,7 +58,6 @@ class SnapControl(Instrument):
     def ramp(self, num_beats):
         for snap_param in self.selected_snap.snap_params:
 
-            self.log('here..')
             if len(self._set.held_instruments) == 0 or (len(self._set.held_instruments) == 1 and self in self._set.held_instruments) or next((x for x in self._set.held_instruments if x == snap_param.instrument), None):
                 
                 #if the param is already ramping, stop that ramp
@@ -66,8 +65,6 @@ class SnapControl(Instrument):
                     if ramping_param['param'] == snap_param.param:
                         self._ramping_params.remove(ramping_param)
 
-                self.log('add param')
-                self.log(snap_param.param.name)
                 self._ramping_params.append({
                     'param': snap_param.param,
                     'beats_remaining': num_beats,

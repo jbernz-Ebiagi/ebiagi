@@ -24,6 +24,7 @@ class EbiagiBase(UserActionsBase):
         self.add_global_action('toggle_input', self.toggle_input)
         self.add_global_action('select_instrument', self.select_instrument)
         self.add_global_action('deselect_instrument', self.deselect_instrument)
+        self.add_global_action('stop_instrument', self.stop_instrument)
         self.add_global_action('select_loop', self.select_loop)
         self.add_global_action('deselect_loop', self.deselect_loop)
         self.add_global_action('stop_loop', self.stop_loop)
@@ -31,6 +32,7 @@ class EbiagiBase(UserActionsBase):
         self.add_global_action('clear_loop', self.clear_loop)
         self.add_global_action('mute_all_loops', self.mute_all_loops)
         self.add_global_action('unmute_all_loops', self.unmute_all_loops)
+        self.add_global_action('quantize_loop', self.quantize_loop)
         self.add_global_action('select_snap', self.select_snap)
         self.add_global_action('deselect_snap', self.deselect_snap)
         self.add_global_action('assign_snap', self.assign_snap)
@@ -68,6 +70,11 @@ class EbiagiBase(UserActionsBase):
         index = int(args[-1]) - 1
         self.set.deselect_instrument(index)
 
+    @catch_exception
+    def stop_instrument(self, action_def, args):
+        index = int(args[-1]) - 1
+        self.set.stop_instrument(index)
+
     @catch_exception    
     def select_loop(self, action_def, args):
         self.set.select_loop(args)
@@ -83,6 +90,10 @@ class EbiagiBase(UserActionsBase):
     @catch_exception    
     def clear_loop(self, action_def, args):
         self.set.clear_loop(args)
+
+    @catch_exception    
+    def quantize_loop(self, action_def, args):
+        self.set.quantize_loop(args)
 
     @catch_exception    
     def mute_all_loops(self, action_def, args):

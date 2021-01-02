@@ -13,7 +13,6 @@ class Router(EbiagiComponent):
 
     def set_instrument(self, instrument):
         self._instrument = instrument
-        self.log(instrument.short_name)
         self._reset()
 
     def update_input(self, ipt):
