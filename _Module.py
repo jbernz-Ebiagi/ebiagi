@@ -4,6 +4,7 @@ from _Instrument import Instrument
 from _Loop import Loop
 from _Snap import Snap
 
+
 class Module(EbiagiComponent):
 
     def __init__(self, track, Set, m=0, a=0):
@@ -26,10 +27,10 @@ class Module(EbiagiComponent):
             #Add Instruments
             if is_instrument(self._song.tracks[i].name):
                 instr = Instrument(self._song.tracks[i], Set)
-                if instr.has_midi_input():
+                if instr.has_midi_input() and Set.midi_routers.length > m:
                     instr.set_midi_router(Set.midi_routers[m])
                     m += 1
-                if instr.has_audio_input():
+                if instr.has_audio_input() and Set.audio_routers.length > a:
                     instr.set_audio_router(Set.audio_routers[a])
                     a += 1
                 self.instruments.append(instr)
@@ -56,6 +57,8 @@ class Module(EbiagiComponent):
         self.log('Deactivating %s...' % self.short_name)
         for instrument in self.instruments:
             instrument.deactivate()
+        for loop in self.loops.values():
+            loop.stop()
         self._track.fold_state = 1
         self._track.mute = 1
 

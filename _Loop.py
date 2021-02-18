@@ -32,16 +32,22 @@ class Loop(EbiagiComponent):
     def select(self):
         if self.is_recording():
             self._finish_record()
-        elif self.is_playing():
-            #self.display_first_clip()
-            for clip_slot in self._clip_slots:
-                clip_slot.run_select_commands()
-            return
+        # elif self.is_playing():
+        #     self.display_first_clip()
+        #     for clip_slot in self._clip_slots:
+        #         clip_slot.run_select_commands()
+        #     return
         else:
             #self._main_clip_slot.fire()
+            has_clip = False
             for clip_slot in self._clip_slots:
-                clip_slot.fire()
-                clip_slot.run_select_commands()
+                if clip_slot.has_clip():
+                    has_clip = True
+            for clip_slot in self._clip_slots:
+                #don't record if there are already clips
+                if not (clip_slot.will_record_on_start() and has_clip):
+                    clip_slot.fire()
+                    clip_slot.run_select_commands()
 
     def deselect(self):
         for clip_slot in self._clip_slots:
@@ -99,7 +105,7 @@ class Loop(EbiagiComponent):
 
     def display_first_clip(self):
         for clip_slot in self._clip_slots:
-            if clip_slot.has_clip:
+            if clip_slot.has_clip and not clip_slot._slot.clip.muted:
                 self.module.set.base.song().view.detail_clip = clip_slot.clip
                 self.module.set.base.canonical_parent.application().view.show_view('Detail/Clip')
                 return
@@ -115,6 +121,7 @@ class ClipSlot(EbiagiComponent):
         self._instrument = instrument
         self._set = Set
         self._held = False
+        self._clip_commands = []
         if self._slot.has_clip:
             self.name = parse_clip_name(self._slot.clip.name)
             self._clip_commands = parse_clip_commands(self._slot.clip.name) or []
@@ -124,10 +131,17 @@ class ClipSlot(EbiagiComponent):
         return not self._slot.has_clip and self._slot.has_stop_button and self._track.can_be_armed and self._track.arm
 
     def fire(self):
-        if self.will_record_on_start() and not self._instrument.is_selected():
+        if self.will_record_on_start() and self._track.playing_slot_index > 0:
+            if self._track.has_midi_input:
+                self._slot.create_clip(1.0)
+                self._slot.clip.name = 'CAN_CLEAR'
+                self.deactivate_clip()
             return
-        else:
-            self._slot.fire()
+        self._slot.fire()
+        # if self.will_record_on_start() and not self._instrument.is_selected():
+        #     return
+        # else:
+        #     self._slot.fire()
 
     def stop(self):
         self._slot.stop()
@@ -183,7 +197,6 @@ class ClipSlot(EbiagiComponent):
 
                 if 'SNAP' in command:
                     index = int(parse_clip_command_param(command))
-                    self.log(index)
                     self._set.snap_control.select_snap(self._set.active_module.snaps[index])
                     self._set.snap_control.ramp(0)
 
@@ -203,15 +216,16 @@ class ClipSlot(EbiagiComponent):
     def run_deselect_commands(self):
         if self._slot.has_clip:
 
-            for command in self._clip_commands:
+            if self._clip_commands:
+                for command in self._clip_commands:
 
-                if 'HOLD' in command and self._held:
-                    can_stop = True
-                    for clip_slot in self._track.clip_slots:
-                        if (clip_slot.is_playing or clip_slot.is_triggered) and clip_slot.clip != self._slot.clip:
-                            can_stop = False
-                    if can_stop:
-                        list(self._track.clip_slots)[self._set.get_scene_index('STOPCLIP')].fire()
+                    if 'HOLD' in command and self._held:
+                        can_stop = True
+                        for clip_slot in self._track.clip_slots:
+                            if (clip_slot.is_playing or clip_slot.is_triggered) and clip_slot.clip != self._slot.clip:
+                                can_stop = False
+                        if can_stop:
+                            list(self._track.clip_slots)[self._set.get_scene_index('STOPCLIP')].fire()
 
             self._held = False
 

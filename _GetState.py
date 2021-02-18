@@ -12,7 +12,7 @@ def get_state(Set):
         snaps = []
         metronome = Set._song.metronome > 0
 
-        for ipt in Set.inputs.values():       
+        for ipt in Set.midi_inputs + Set.audio_inputs:       
             if len(ipt._instruments) > 1:
                 inputs[ipt.short_name] = 'white'
             elif len(ipt._instruments) == 1:

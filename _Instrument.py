@@ -25,11 +25,12 @@ class Instrument(EbiagiComponent):
 
         input_names = get_short_name(track.name.split('.')[1]).split(',')
         for name in input_names:
-            if Set.inputs[name]:
-                if Set.inputs[name].has_midi_input:
-                    self._midi_inputs.append(Set.inputs[name])
-                if Set.inputs[name].has_audio_input:
-                    self._audio_inputs.append(Set.inputs[name])
+            ipt = Set.get_input(name)
+            if ipt:
+                if ipt.has_midi_input:
+                    self._midi_inputs.append(ipt)
+                if ipt.has_audio_input:
+                    self._audio_inputs.append(ipt)
         
 
         i = list(self._song.tracks).index(track) + 1
