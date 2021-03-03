@@ -2,7 +2,7 @@ def get_state(Set):
     if Set and not Set.loading:
 
         modules = []
-        loops = []
+        loops = {}
         clips = []
         instr = []
         inputs = {}
@@ -46,11 +46,10 @@ def get_state(Set):
             loop = Set.active_module.loops[key]
             color = 'red' if loop.can_record() and not loop.has_clips() or loop.is_recording() else color_name(loop.color())
             brightness = 1 if loop.is_playing() else 0
-            loops.append({
-                'key_name': key,
+            loops[key] = {
                 'color': color, 
                 'brightness': brightness,
-            })   
+            }   
 
 
         for snap in Set.active_module.snaps:

@@ -27,10 +27,10 @@ class Module(EbiagiComponent):
             #Add Instruments
             if is_instrument(self._song.tracks[i].name):
                 instr = Instrument(self._song.tracks[i], Set)
-                if instr.has_midi_input() and Set.midi_routers.length > m:
+                if instr.has_midi_input() and len(Set.midi_routers) > m:
                     instr.set_midi_router(Set.midi_routers[m])
                     m += 1
-                if instr.has_audio_input() and Set.audio_routers.length > a:
+                if instr.has_audio_input() and len(Set.audio_routers) > a:
                     instr.set_audio_router(Set.audio_routers[a])
                     a += 1
                 self.instruments.append(instr)

@@ -53,7 +53,7 @@ class EbiagiBase(UserActionsBase):
 
     @catch_exception
     def activate_module(self, action_def, args):
-        index = int(args[-1]) - 1
+        index = int(args[-1])
         self.set.activate_module(index)
 
     @catch_exception
@@ -62,21 +62,22 @@ class EbiagiBase(UserActionsBase):
 
     @catch_exception
     def select_instrument(self, action_def, args):
-        index = int(args[-1]) - 1
+        index = int(args[-1])
         self.set.select_instrument(index)
 
     @catch_exception
     def deselect_instrument(self, action_def, args):
-        index = int(args[-1]) - 1
+        index = int(args[-1])
         self.set.deselect_instrument(index)
 
     @catch_exception
     def stop_instrument(self, action_def, args):
-        index = int(args[-1]) - 1
+        index = int(args[-1])
         self.set.stop_instrument(index)
 
     @catch_exception    
     def select_loop(self, action_def, args):
+        self.log(args)
         self.set.select_loop(args)
 
     @catch_exception    
@@ -109,22 +110,22 @@ class EbiagiBase(UserActionsBase):
 
     @catch_exception    
     def select_snap(self, action_def, args):
-        index = int(args[-1]) - 1
+        index = int(args[-1])
         self.set.select_snap(index)
 
     @catch_exception    
     def deselect_snap(self, action_def, args):
-        index = int(args[-1]) - 1
+        index = int(args[-1])
         self.set.deselect_snap(index)
 
     @catch_exception    
     def assign_snap(self, action_def, args):
-        index = int(args[-1]) - 1
+        index = int(args[-1])
         self.set.assign_snap(index)
 
     @catch_exception    
     def clear_snap(self, action_def, args):
-        index = int(args[-1]) - 1
+        index = int(args[-1]) 
         self.set.clear_snap(index)
 
     @catch_exception    
@@ -138,12 +139,12 @@ class EbiagiBase(UserActionsBase):
 
     @catch_exception
     def select_global_instrument(self, action_def, args):
-        index = int(args[-1]) - 1
+        index = int(args[-1])
         self.set.select_global_instrument(index)
 
     @catch_exception
     def deselect_global_instrument(self, action_def, args):
-        index = int(args[-1]) - 1
+        index = int(args[-1])
         self.set.deselect_global_instrument(index)
 
     @catch_exception    
