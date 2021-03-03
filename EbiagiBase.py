@@ -130,8 +130,6 @@ class EbiagiBase(UserActionsBase):
 
     @catch_exception    
     def recall_snap(self, action_def, args):
-        self.log('ramp')
-        self.log(args)
         beats = 0
         if args:
             beats = int(args)*4
