@@ -74,6 +74,10 @@ def get_state(Set):
             'brightness': 1 if Set.global_loop.is_playing else 0,
         }
 
+        smart_record = {
+            'color': 'red',
+            'brightness': 1 if Set.smart_loop and Set.smart_loop.is_recording() else 0
+        }
 
         return {
             'instr': instr,
@@ -85,7 +89,8 @@ def get_state(Set):
             'ginstr': ginstr,
             'globalLoop': global_loop,
             'snaps': snaps,
-            'metronome': metronome
+            'metronome': metronome,
+            'smart_record': smart_record
         }
 
     else:

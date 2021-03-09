@@ -44,6 +44,8 @@ class EbiagiBase(UserActionsBase):
         self.add_global_action('stop_global_loop', self.stop_global_loop)
         self.add_global_action('clear_global_loop', self.clear_global_loop)
         self.add_global_action('toggle_metronome', self.toggle_metronome)
+        self.add_global_action('smart_record', self.smart_record)
+        self.add_global_action('smart_clear', self.smart_clear)
 
         self.socket = Socket(self)  
 
@@ -160,6 +162,14 @@ class EbiagiBase(UserActionsBase):
     @catch_exception    
     def toggle_metronome(self, action_def, args):
         self.set.toggle_metronome()
+
+    @catch_exception    
+    def smart_record(self, action_def, args):
+        self.set.smart_record()
+
+    @catch_exception    
+    def smart_clear(self, action_def, args):
+        self.set.smart_clear()
 
     @catch_exception
     def get_state(self):

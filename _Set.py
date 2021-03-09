@@ -30,6 +30,8 @@ class Set(EbiagiComponent):
 
         self.held_instruments = set([])
 
+        self.smart_loop = None
+
         m = 0
         a = 0
         for track in self._song.tracks:
@@ -99,6 +101,7 @@ class Set(EbiagiComponent):
 
                 self.modules[index].activate()
                 self.active_module = self.modules[index]
+                self.smart_loop = None
             else:
                 self.message('Module already active')
         else:
@@ -210,6 +213,29 @@ class Set(EbiagiComponent):
 
     def toggle_metronome(self):
         self._song.metronome = not self._song.metronome
+
+    def smart_record(self):
+        if self.smart_loop and self.smart_loop.is_recording():
+            self.smart_loop.select()
+        else:
+            woot = None
+            for ipt in self.midi_inputs:
+                if ipt.short_name == 'WOOT':
+                    woot = ipt
+            for loop in self.active_module.loops.values():
+                if not loop.has_clips():
+                    for clip_slot in loop._clip_slots:
+                        self.log(clip_slot._instrument.is_selected())
+                        if woot.has_instrument(clip_slot._instrument) and clip_slot.will_record_on_start() and not clip_slot._track.playing_slot_index > 0:
+                            self.log('select loop')
+                            loop.select()
+                            self.smart_loop = loop
+                            return
+
+    def smart_clear(self):
+        if self.smart_loop:
+            self.smart_loop.clear()
+            self.smart_loop = None
 
     #TODO: Performance can be improved by mapping names
     def get_scene_index(self, name):
