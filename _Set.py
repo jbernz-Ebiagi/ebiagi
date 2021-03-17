@@ -5,6 +5,7 @@ from _Input import Input
 from _Router import Router
 from _Instrument import Instrument
 from _SnapControl import SnapControl
+from _utils import qwerty_order
 
 class Set(EbiagiComponent):
 
@@ -16,6 +17,8 @@ class Set(EbiagiComponent):
 
         self.midi_inputs = []
         self.audio_inputs = []
+
+        self.woot = None
 
         self.midi_routers = []
         self.audio_routers = []
@@ -41,6 +44,8 @@ class Set(EbiagiComponent):
                 ipt = Input(track, self)
                 if track.has_midi_input:
                     self.midi_inputs.append(ipt)
+                    if ipt.short_name == 'WOOT':
+                        self.woot = ipt
                 elif track.has_audio_input:
                     self.audio_inputs.append(ipt)
 
@@ -218,12 +223,10 @@ class Set(EbiagiComponent):
         if self.smart_loop and self.smart_loop.is_recording():
             self.smart_loop.select()
         else:
-            woot = None
-            for ipt in self.midi_inputs:
-                if ipt.short_name == 'WOOT':
-                    woot = ipt
-            for loop in self.active_module.loops.values():
-                if not loop.has_clips():
+            woot = self.woot
+            for key in qwerty_order:
+                loop = self.active_module.loops[key]
+                if loop and not loop.has_clips():
                     for clip_slot in loop._clip_slots:
                         self.log(clip_slot._instrument.is_selected())
                         if woot.has_instrument(clip_slot._instrument) and clip_slot.will_record_on_start() and not clip_slot._track.playing_slot_index > 0:
@@ -236,6 +239,35 @@ class Set(EbiagiComponent):
         if self.smart_loop:
             self.smart_loop.clear()
             self.smart_loop = None
+
+    ## TODO: implement this in a more extensible/less brittle way
+    def woot_arp_on(self, args):
+        dev = self.woot._track.devices[0]
+        for param in dev.parameters:
+            if param.name == 'Device On':
+                param.value = param.max
+            # if param.name == 'Sync On':
+            #     if args == 'free':
+            #         param.value = param.min
+            #     else:
+            #         param.value = param.max
+            # if param.name == 'Synced Rate':
+            #     self.log(param.value_items)
+            #     if args in param.value_items:
+            #         param.value = args
+
+    def woot_arp_off(self):
+        dev = self.woot._track.devices[0]
+        for param in dev.parameters:
+            if param.name == 'Device On':
+                param.value = param.min
+
+    def woot_arp_style(self):
+        dev = self.woot._track.devices[0]
+        for param in dev.parameters:
+            if param.name == 'Style':
+                param.value = args
+
 
     #TODO: Performance can be improved by mapping names
     def get_scene_index(self, name):

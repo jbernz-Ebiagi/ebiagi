@@ -46,6 +46,10 @@ class EbiagiBase(UserActionsBase):
         self.add_global_action('toggle_metronome', self.toggle_metronome)
         self.add_global_action('smart_record', self.smart_record)
         self.add_global_action('smart_clear', self.smart_clear)
+        self.add_global_action('smart_clear', self.smart_clear)
+        self.add_global_action('woot_arp_on', self.woot_arp_on)
+        self.add_global_action('woot_arp_off', self.woot_arp_off)
+        self.add_global_action('woot_arp_style', self.woot_arp_style)
 
         self.socket = Socket(self)  
 
@@ -170,6 +174,18 @@ class EbiagiBase(UserActionsBase):
     @catch_exception    
     def smart_clear(self, action_def, args):
         self.set.smart_clear()
+
+    @catch_exception    
+    def woot_arp_on(self, action_def, args):
+        self.set.woot_arp_on(args)
+
+    @catch_exception    
+    def woot_arp_off(self, action_def, args):
+        self.set.woot_arp_off()
+
+    @catch_exception    
+    def woot_arp_style(self, action_def, args):
+        self.set.woot_arp_style(style)
 
     @catch_exception
     def get_state(self):

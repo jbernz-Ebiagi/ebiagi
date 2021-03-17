@@ -79,6 +79,12 @@ def get_state(Set):
             'brightness': 1 if Set.smart_loop and Set.smart_loop.is_recording() else 0
         }
 
+        woot_arp = {
+            # 'rate': Set.woot._track.devices[0].parameters[0].value
+            # 'style': Set.woot._track.devices[0].parameters[1].value
+            'device_on': Set.woot._track.devices[0].parameters[7].value
+        } if Set.woot else {}
+
         return {
             'instr': instr,
             'inputs': inputs,
@@ -90,7 +96,8 @@ def get_state(Set):
             'globalLoop': global_loop,
             'snaps': snaps,
             'metronome': metronome,
-            'smart_record': smart_record
+            'smart_record': smart_record,
+            'woot_arp': woot_arp
         }
 
     else:

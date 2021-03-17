@@ -2,8 +2,8 @@ from _Instrument import Instrument
 from _naming_conventions import *
 from _utils import catch_exception
 from _Framework.SubjectSlot import subject_slot
-from ClyphX_Pro.clyphx_pro.ClyphXComponentBase import add_client, remove_client
 from functools import partial
+import Live
 
 class SnapControl(Instrument):
 
@@ -25,7 +25,8 @@ class SnapControl(Instrument):
         self._last_tick = 0
         self._ramping_params = []
 
-        add_client(self)
+        self._scheduler = Live.Base.Timer(callback=self.on_tick, interval=1, repeat=True)
+        self._scheduler.start()
 
     def select(self):
         self._assign_to_inputs()
@@ -83,6 +84,10 @@ class SnapControl(Instrument):
     def _do_ramp(self):
         current_tick = self._song.get_current_beats_song_time().ticks
         tick_difference = float(current_tick - self._last_tick)
+        
+        if not self._song.is_playing:
+            self._song.start_playing()
+
         if tick_difference < 0:
             tick_difference += 60
 
@@ -103,7 +108,7 @@ class SnapControl(Instrument):
 
     def disconnect(self):
         super(SnapControl, self).disconnect()
-        remove_client(self)
+        self._scheduler.stop()
         self.ramping_params = []
         return
 

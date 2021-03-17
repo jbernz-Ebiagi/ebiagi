@@ -1,7 +1,6 @@
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from ClyphX_Pro.clyphx_pro.ClyphXComponentBase import ClyphXComponentBase
 
-class EbiagiComponent(ClyphXComponentBase):
+class EbiagiComponent(ControlSurfaceComponent):
 
     def __init__(self, *a, **k):
         super(EbiagiComponent, self).__init__(*a, **k)

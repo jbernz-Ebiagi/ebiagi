@@ -202,11 +202,11 @@ class ClipSlot(EbiagiComponent):
 
                 if 'PLAY' in command:
                     clip_name_to_play = parse_clip_command_param(command)
-                    self.log(clip_name_to_play)
                     for clip_slot in self._track.clip_slots:
                         if clip_slot.has_clip:
                             self.log(parse_clip_name(clip_slot.clip.name))
                             if parse_clip_name(clip_slot.clip.name) == clip_name_to_play:
+                                self.log('fire clip')
                                 clip_slot.fire()
 
                 if 'STOP' in command:

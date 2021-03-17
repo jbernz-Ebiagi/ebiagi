@@ -48,12 +48,9 @@ class Instrument(EbiagiComponent):
     def activate(self):
         if len(self._track.devices) > 0:
             self._track.devices[0].parameters[0].value = 1
-            for parameter in self._track.devices[0].parameters:
-                if parameter.name == 'Program Change':
-                    if parameter.value == parameter.min:
-                        parameter.value = parameter.max
-                    else:
-                        parameter.value = parameter.min
+            for clip_slot in self._track.clip_slots:
+                if clip_slot.has_clip and clip_slot.clip.name == 'INIT':
+                    clip_slot.fire()
             for track in [self._track] + self._ex_midi + self._ex_audio:
                 self.log(track.name)
                 self.set_default_monitoring_state(track)

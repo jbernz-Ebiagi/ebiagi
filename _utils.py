@@ -33,3 +33,5 @@ def is_empty_midi_clip(clip):
     if clip.is_audio_clip:
         return False
     return True
+
+qwerty_order = ['1','2','3','4','5','6','7','8','9','0','-','equal','q','w','e','r','t','y','u','i','o','p','lb','rb','a','s','d','f','g','h','j','k','l','semi','apos','z','x','c','v','b','n','m',',','.','slash']
