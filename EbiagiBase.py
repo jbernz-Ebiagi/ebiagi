@@ -1,17 +1,34 @@
-from ClyphX_Pro.clyphx_pro.UserActionsBase import UserActionsBase
+# from ClyphX_Pro.clyphx_pro.UserActionsBase import UserActionsBase
+import Live, sys
+import logging
+logger = logging.getLogger(__name__)
+from _Framework.CompoundComponent import CompoundComponent
+from _Framework.SubjectSlot import Subject
 from _utils import catch_exception, clear_log_file
 from _Set import Set
 from _Socket import Socket
 from _GetState import get_state
+from _ParseControls import handle_xcontrol_and_binding_settings
 
 #This file is the entry point to the control surface script, and defines/routes the available actions
-class EbiagiBase(UserActionsBase):
+class EbiagiBase(CompoundComponent, Subject):
 
     @catch_exception    
     def __init__(self, *a, **k):
-        super(EbiagiBase, self).__init__(*a, **k)
+        super(EbiagiBase, self).__init__(name='ClyphX_ProComponent', *a, **k)
+        clear_log_file()
+
         self.socket = None
         self.set = None
+        self.actions = {}
+
+        handle_xcontrol_and_binding_settings('None', self, self.log)
+
+        self.create_actions()
+        self.rebuild_set()
+
+    def add_global_action(self, name, function):
+        self.actions[name] = function    
 
     @catch_exception
     def create_actions(self):
@@ -52,6 +69,12 @@ class EbiagiBase(UserActionsBase):
         self.add_global_action('woot_arp_style', self.woot_arp_style)
 
         self.socket = Socket(self)  
+
+    @catch_exception
+    def handle_action(self, action_def, args):
+        self.log(action_def)
+        self.log(args)
+        self.actions[action_def](action_def, args)
 
     @catch_exception
     def rebuild_set(self, action_def, args):
@@ -185,11 +208,11 @@ class EbiagiBase(UserActionsBase):
 
     @catch_exception    
     def woot_arp_style(self, action_def, args):
-        self.set.woot_arp_style(style)
+        self.set.woot_arp_style(args)
 
     @catch_exception
     def get_state(self):
         return get_state(self.set)
 
     def log(self, message):
-        self.canonical_parent.log_message(message)
+        logger.info(message)
