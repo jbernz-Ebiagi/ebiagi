@@ -1,8 +1,8 @@
-from _EbiagiComponent import EbiagiComponent
-from _naming_conventions import *
-from _Instrument import Instrument
-from _Loop import Loop
-from _Snap import Snap
+from ._EbiagiComponent import EbiagiComponent
+from ._naming_conventions import *
+from ._Instrument import Instrument
+from ._Loop import Loop
+from ._Snap import Snap
 
 
 class Module(EbiagiComponent):

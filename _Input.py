@@ -1,5 +1,5 @@
-from _EbiagiComponent import EbiagiComponent
-from _naming_conventions import *
+from ._EbiagiComponent import EbiagiComponent
+from ._naming_conventions import *
 
 class Input(EbiagiComponent):
 

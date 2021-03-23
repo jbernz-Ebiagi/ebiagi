@@ -1,7 +1,7 @@
 import socket
 import json
 from threading import Timer
-from _EbiagiComponent import EbiagiComponent
+from ._EbiagiComponent import EbiagiComponent
 
 class Socket(EbiagiComponent):
 
@@ -37,11 +37,9 @@ class Socket(EbiagiComponent):
         def jsonReplace(o):
             return str(o)
         try:
-            self._socket.sendto(json.dumps(
-                {"event": name, "data": obj}, default=jsonReplace, ensure_ascii=False), self._remote_addr)
-        except Exception, e:
-            self._socket.sendto(json.dumps(
-                {"event": "error", "data": str(type(e).__name__) + ': ' + str(e.args)}, default=jsonReplace, ensure_ascii=False), self._remote_addr)
+            self._socket.sendto(json.dumps({"event": name, "data": obj}, default=jsonReplace, ensure_ascii=False).encode(), self._remote_addr)
+        except Exception as e:
+            self._socket.sendto(json.dumps({"event": "error", "data": str(type(e).__name__) + ': ' + str(e.args)}, default=jsonReplace, ensure_ascii=False).encode(), self._remote_addr)
             self.log("Socket Error " + name + ": " + str(e))
 
     def process(self):
@@ -53,13 +51,19 @@ class Socket(EbiagiComponent):
                     self.input_handler(payload)
         except socket.error:
             return
-        except Exception, e:
+        except Exception as e:
             self.log("Error: " + str(e.args))
 
     def input_handler(self, payload):
         if payload['event'] == 'get_state':
-            state = self.base.get_state()
-            self.send('give_state', state)
+            try:
+                self.log('get state')
+                state = self.base.get_state()
+                self.log('sending state...')
+                self.send('give_state', state)
+            except Exception as e:
+                self.log("Error: " + str(e.args))
+
 
     def disconnect(self):
         super(Socket, self).disconnect()

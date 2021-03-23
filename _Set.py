@@ -1,11 +1,11 @@
-from _EbiagiComponent import EbiagiComponent
-from _naming_conventions import *
-from _Module import Module
-from _Input import Input
-from _Router import Router
-from _Instrument import Instrument
-from _SnapControl import SnapControl
-from _utils import qwerty_order
+from ._EbiagiComponent import EbiagiComponent
+from ._naming_conventions import *
+from ._Module import Module
+from ._Input import Input
+from ._Router import Router
+from ._Instrument import Instrument
+from ._SnapControl import SnapControl
+from ._utils import qwerty_order
 
 class Set(EbiagiComponent):
 

@@ -1,6 +1,6 @@
-from _EbiagiComponent import EbiagiComponent
-from _naming_conventions import *
-from _utils import is_empty_midi_clip
+from ._EbiagiComponent import EbiagiComponent
+from ._naming_conventions import *
+from ._utils import is_empty_midi_clip
 
 class Loop(EbiagiComponent):
 

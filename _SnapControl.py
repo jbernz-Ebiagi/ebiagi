@@ -1,6 +1,6 @@
-from _Instrument import Instrument
-from _naming_conventions import *
-from _utils import catch_exception
+from ._Instrument import Instrument
+from ._naming_conventions import *
+from ._utils import catch_exception
 from _Framework.SubjectSlot import subject_slot
 from functools import partial
 import Live

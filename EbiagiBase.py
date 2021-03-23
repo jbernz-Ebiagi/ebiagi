@@ -4,36 +4,37 @@ import logging
 logger = logging.getLogger(__name__)
 from _Framework.CompoundComponent import CompoundComponent
 from _Framework.SubjectSlot import Subject
-from _utils import catch_exception, clear_log_file
-from _Set import Set
-from _Socket import Socket
-from _GetState import get_state
-from _ParseControls import handle_xcontrol_and_binding_settings
+from ._utils import catch_exception, clear_log_file
+from ._Set import Set
+from ._Socket import Socket
+from ._GetState import get_state
+from ._ParseControls import handle_xcontrol_and_binding_settings
+
 
 #This file is the entry point to the control surface script, and defines/routes the available actions
 class EbiagiBase(CompoundComponent, Subject):
 
     @catch_exception    
     def __init__(self, *a, **k):
-        super(EbiagiBase, self).__init__(name='ClyphX_ProComponent', *a, **k)
+        super(EbiagiBase, self).__init__(name='EbiagiBase', *a, **k)
         clear_log_file()
 
         self.socket = None
         self.set = None
         self.actions = {}
+        self._midi_message_registry = {}
 
-        handle_xcontrol_and_binding_settings('None', self, self.log)
+        self.log('reading xcontrols...')
+        handle_xcontrol_and_binding_settings('Main', self, self.log)
 
         self.create_actions()
         self.rebuild_set()
 
     def add_global_action(self, name, function):
-        self.actions[name] = function    
+        self.actions[name] = function    \
 
     @catch_exception
     def create_actions(self):
-
-        clear_log_file()
         self.log('initializing Ebiagi...')
 
         self.add_global_action('rebuild_set', self.rebuild_set)
@@ -77,7 +78,7 @@ class EbiagiBase(CompoundComponent, Subject):
         self.actions[action_def](action_def, args)
 
     @catch_exception
-    def rebuild_set(self, action_def, args):
+    def rebuild_set(self, action_def='', args=''):
         self.set = Set()
 
     @catch_exception
@@ -216,3 +217,14 @@ class EbiagiBase(CompoundComponent, Subject):
 
     def log(self, message):
         logger.info(message)
+
+    def can_register_midi_message(self, message, identifier):
+        """ Returns whether the given message can be registered for the script with the
+        given identifier. """
+        return message not in self._midi_message_registry.get(identifier, [])
+
+
+    def register_midi_message(self, message, identifier):
+        """ Registers the given message for the script with the given identifier. """
+        reg = self._midi_message_registry.setdefault(identifier, [])
+        reg.append(message)

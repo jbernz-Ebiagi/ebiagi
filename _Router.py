@@ -1,4 +1,4 @@
-from _EbiagiComponent import EbiagiComponent
+from ._EbiagiComponent import EbiagiComponent
 
 class Router(EbiagiComponent):
 
