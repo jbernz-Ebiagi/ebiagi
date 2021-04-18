@@ -57,14 +57,19 @@ class SnapControl(Instrument):
             self._tasks.add(partial(self._update_parameter_value, s['param'], new_value))
 
     def ramp(self, num_beats):
+
         for snap_param in self.selected_snap.snap_params:
 
             if len(self._set.held_instruments) == 0 or (len(self._set.held_instruments) == 1 and self in self._set.held_instruments) or next((x for x in self._set.held_instruments if x == snap_param.instrument), None):
-                
+
                 #if the param is already ramping, stop that ramp
                 for ramping_param in self._ramping_params:
                     if ramping_param['param'] == snap_param.param:
                         self._ramping_params.remove(ramping_param)
+
+                if not self._song.is_playing:
+                    snap_param.param.value = snap_param.value
+                    return
 
                 self._ramping_params.append({
                     'param': snap_param.param,
@@ -84,9 +89,6 @@ class SnapControl(Instrument):
     def _do_ramp(self):
         current_tick = self._song.get_current_beats_song_time().ticks
         tick_difference = float(current_tick - self._last_tick)
-        
-        if not self._song.is_playing:
-            self._song.start_playing()
 
         if tick_difference < 0:
             tick_difference += 60

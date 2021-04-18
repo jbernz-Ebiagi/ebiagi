@@ -111,8 +111,6 @@ class XControlComponent(EbiagiComponent):
             btn = ButtonElement(True, s[0][0], s[0][1], s[0][2], name=s[3])
             btns.append(btn)
 
-        self.log(btns)
-
         self._on_button_value.replace_subjects(btns)
 
     def disconnect(self):

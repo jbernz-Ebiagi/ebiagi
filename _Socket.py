@@ -57,9 +57,7 @@ class Socket(EbiagiComponent):
     def input_handler(self, payload):
         if payload['event'] == 'get_state':
             try:
-                self.log('get state')
                 state = self.base.get_state()
-                self.log('sending state...')
                 self.send('give_state', state)
             except Exception as e:
                 self.log("Error: " + str(e.args))

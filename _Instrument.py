@@ -5,10 +5,11 @@ from ._utils import set_input_routing, set_output_routing
 
 class Instrument(EbiagiComponent):
 
-    def __init__(self, track, Set):
+    def __init__(self, track, Set, Module=None):
         super(Instrument, self).__init__()
         self._track = track
         self._set = Set
+        self._module = Module
 
         self._midi_inputs = []
         self._audio_inputs = []
@@ -52,12 +53,22 @@ class Instrument(EbiagiComponent):
                 if clip_slot.has_clip and clip_slot.clip.name == 'INIT':
                     clip_slot.fire()
             for track in [self._track] + self._ex_midi + self._ex_audio:
-                self.log(track.name)
                 self.set_default_monitoring_state(track)
         if self._midi_router:
             self._midi_router.set_instrument(self)
         if self._audio_router:
             self._audio_router.set_instrument(self)
+        #if this is the only instrument with a certain input im the module, automatically assign it
+        for ipt in self._midi_inputs + self._audio_inputs:
+            one_to_one = True
+            for instr in self._module.instruments:
+                if instr != self and ipt in instr._midi_inputs + instr._audio_inputs:
+                    one_to_one = False
+            if one_to_one:
+                self.log('activating input')
+                self.log(ipt.short_name)
+                self.log(self.short_name)
+                ipt.add_instrument(self)
 
     def deactivate(self):
         if len(self._track.devices) > 0:

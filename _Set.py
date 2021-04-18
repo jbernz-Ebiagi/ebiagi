@@ -107,6 +107,7 @@ class Set(EbiagiComponent):
                 self.modules[index].activate()
                 self.active_module = self.modules[index]
                 self.smart_loop = None
+                self._update_routers()
             else:
                 self.message('Module already active')
         else:

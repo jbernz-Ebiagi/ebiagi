@@ -13,10 +13,13 @@ class Snap(EbiagiComponent):
         for d in data:
             for instrument in Module.instruments:
                 if d['instr_name'] == get_short_name(instrument._track.name):
-                    self.snap_params.append(SnapParam(instrument, instrument._track.devices[0].parameters[d['param_index']], d['param_value']))
-        
-        self.log(self.snap_params)
-
+                    self.log(d['param_index'])
+                    if isinstance(d['param_index'], list):
+                        self.log('wee')
+                    try:
+                        self.snap_params.append(SnapParam(instrument, parse_param_index(d['param_index'], instrument._track.devices[0]), d['param_value']))
+                    except:
+                        self.log('could not load snap')
 
     def create_param(self, instrument, param):
         self.snap_params.append(SnapParam(instrument, param, param.value))
@@ -50,8 +53,37 @@ class SnapParam:
     def get_data(self):
         return {
             "instr_name": get_short_name(self.instrument._track.name),
-            "param_index": list(self.instrument._track.devices[0].parameters).index(self.param),
+            "param_index": get_param_index(self.param, self.instrument._track.devices[0]),
             "param_value": self.value
         }
+
+#recursively search for a param in a device and return a compound index
+def get_param_index(param, device):
+    childDeviceIndex = 0
+    chainIndex = 0
+    paramIndex = 0
+    for parameter in device.parameters:
+        if param == parameter:
+            return paramIndex
+        paramIndex += 1
+    if device.can_have_chains:
+        for chain in device.chains:
+            childDeviceIndex = 0
+            for childDevice in chain.devices:
+                n = get_param_index(param, childDevice)
+                if n:
+                    return [chainIndex, childDeviceIndex, n]
+                childDeviceIndex += 1
+            chainIndex += 1
+    return False
+
+def parse_param_index(paramIndex, device):
+    if isinstance(paramIndex, list):
+        return parse_param_index(paramIndex[2], device.chains[paramIndex[0]].devices[paramIndex[1]])
+    else:
+        return device.parameters[paramIndex]
+
+
+
 
 
