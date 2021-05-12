@@ -30,6 +30,9 @@ def is_ex_instrument_track(name):
 def is_source_track(name):
     return name.endswith('[S]')
 
+def is_trunk_track(name):
+    return name.endswith('[T]')
+
 def is_compiled_track(name):
     return name.endswith('[C]')
 

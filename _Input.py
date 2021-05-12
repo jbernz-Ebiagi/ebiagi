@@ -3,7 +3,7 @@ from ._naming_conventions import *
 
 class Input(EbiagiComponent):
 
-    def __init__(self, track, Set):
+    def __init__(self, track, Set, update=None):
         super(Input, self).__init__()
         self._track = track
         self._set = Set
@@ -16,11 +16,21 @@ class Input(EbiagiComponent):
 
         self.phantom_instrument = None
 
+        self.update_device = update
+
         self.log('Initializing Input %s...' % self.short_name)
 
     def add_instrument(self, instrument):
         self._instruments.add(instrument)
         self.phantom_instrument = None
+
+        #if selecting a new instrument, send feedback to input hardware
+        self.log('add instrument')
+        self.log(self._instruments)
+        self.log(self.update_device)
+        if(len(self._instruments) == 1 and self.update_device):
+            self.log('update device')
+            self.update_device(instrument._track)
 
     def remove_instrument(self, instrument):
         if instrument in self._instruments:
@@ -40,3 +50,7 @@ class Input(EbiagiComponent):
 
     def empty(self):
         return len(self._instruments) == 0
+
+    def clear(self):
+        self._instruments = set([])
+        self.phantom_instrument = None

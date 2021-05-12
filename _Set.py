@@ -1,3 +1,4 @@
+from _Framework.ControlSurface import get_control_surfaces
 from ._EbiagiComponent import EbiagiComponent
 from ._naming_conventions import *
 from ._Module import Module
@@ -30,6 +31,7 @@ class Set(EbiagiComponent):
 
         self.global_instruments = []
         self.global_loop = None
+        self.global_loop_track = None
 
         self.held_instruments = set([])
 
@@ -37,6 +39,13 @@ class Set(EbiagiComponent):
 
         m = 0
         a = 0
+
+        twister_control = None
+
+        for s in get_control_surfaces():
+            if s.__class__.__name__ == 'twister':
+                twister_control = s
+
         for track in self._song.tracks:
 
             #Add inputs
@@ -46,6 +55,11 @@ class Set(EbiagiComponent):
                     self.midi_inputs.append(ipt)
                     if ipt.short_name == 'WOOT':
                         self.woot = ipt
+                    if ipt.short_name == 'MFT1' and twister_control:
+                        ipt.update_device = twister_control.set_instrument_dials
+                    if ipt.short_name == 'MFT2':
+                        ipt.update_device = twister_control.set_fx_dials
+                                
                 elif track.has_audio_input:
                     self.audio_inputs.append(ipt)
 
@@ -76,10 +90,15 @@ class Set(EbiagiComponent):
                 sc.set_midi_router(self.midi_routers[m])
                 m += 1
                 self.snap_control = sc
+                if twister_control:
+                    twister_control.set_gfx_dial(sc._knob,12)
 
             #Add global loop
             if is_global_loop_track(track.name):
+                self.global_loop_track = track
                 self.global_loop = track.clip_slots[0]
+
+        twister_control.set_xfade_dial()
 
         for track in self._song.tracks:
 
@@ -103,6 +122,10 @@ class Set(EbiagiComponent):
 
                 for router in self.midi_routers and self.audio_routers:
                     router.set_instrument(None)
+
+                for ipt in self.midi_inputs + self.audio_inputs:
+                    self.log('clear input')
+                    ipt.clear()
 
                 self.modules[index].activate()
                 self.active_module = self.modules[index]
@@ -172,6 +195,7 @@ class Set(EbiagiComponent):
             instr.mute_loops()
 
     def unmute_all_loops(self):
+        self.global_loop_track.arm = 1
         for instr in self.active_module.instruments:
             instr.unmute_loops()
 
@@ -240,6 +264,10 @@ class Set(EbiagiComponent):
         if self.smart_loop:
             self.smart_loop.clear()
             self.smart_loop = None
+
+    def clear_arrangement_clip_envelopes(self):
+        for instr in self.active_module.instruments:
+            instr.clear_arrangement_envelopes()
 
     ## TODO: implement this in a more extensible/less brittle way
     def woot_arp_on(self, args):

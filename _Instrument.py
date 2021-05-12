@@ -117,8 +117,8 @@ class Instrument(EbiagiComponent):
             set_input_routing(track, 'No Input')
             set_output_routing(track, router._track.name)
         elif is_compiled_track(track.name):
-            set_output_routing(track, self._track.output_routing_type.display_name)
-            set_input_routing(track, self._track.name)
+            set_output_routing(track, self._track.name)
+            set_input_routing(track, router._track.name)
         else:
             set_input_routing(track, router._track.name)
 
@@ -157,9 +157,20 @@ class Instrument(EbiagiComponent):
         for track in [self._track] + self._ex_midi + self._ex_audio:
             self.set_default_monitoring_state(track)
 
+    def clear_arrangement_envelopes(self):
+        for track in [self._track] + self._ex_midi + self._ex_audio:
+            for clip in track.arrangement_clips:
+                if clip.has_envelopes:
+                    self.log('clear envelope')
+                    self.log(track.name)
+                    clip.clear_all_envelopes()
+
     def set_default_monitoring_state(self, track):
         if is_source_track(track.name):
             track.current_monitoring_state = 2
+        elif is_trunk_track(track.name):
+            track.current_monitoring_state = 0
+            track.arm = 0
         elif is_compiled_track(track.name):
             track.current_monitoring_state = 2
             track.arm = 1

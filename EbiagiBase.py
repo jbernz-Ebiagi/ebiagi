@@ -30,6 +30,11 @@ class EbiagiBase(CompoundComponent, Subject):
         self.create_actions()
         self.rebuild_set()
 
+        # scripts = get_control_surfaces()
+        # for s in scripts:
+        #     if s.__class__.__name__ == 'twister':
+                
+
     def add_global_action(self, name, function):
         self.actions[name] = function    \
 
@@ -64,10 +69,10 @@ class EbiagiBase(CompoundComponent, Subject):
         self.add_global_action('toggle_metronome', self.toggle_metronome)
         self.add_global_action('smart_record', self.smart_record)
         self.add_global_action('smart_clear', self.smart_clear)
-        self.add_global_action('smart_clear', self.smart_clear)
         self.add_global_action('woot_arp_on', self.woot_arp_on)
         self.add_global_action('woot_arp_off', self.woot_arp_off)
         self.add_global_action('woot_arp_style', self.woot_arp_style)
+        self.add_global_action('rearm_all', self.rearm_all)
 
         self.socket = Socket(self)  
 
@@ -191,10 +196,12 @@ class EbiagiBase(CompoundComponent, Subject):
     def toggle_metronome(self, action_def, args):
         self.set.toggle_metronome()
 
+    #Record to the next open clip in a non-playing track for the selected woot instrument
     @catch_exception    
     def smart_record(self, action_def, args):
         self.set.smart_record()
 
+    #Clear the last recorded smart record
     @catch_exception    
     def smart_clear(self, action_def, args):
         self.set.smart_clear()
@@ -210,6 +217,12 @@ class EbiagiBase(CompoundComponent, Subject):
     @catch_exception    
     def woot_arp_style(self, action_def, args):
         self.set.woot_arp_style(args)
+
+    #TODO: update name
+    #For now clears envelopes for all arrangement clips
+    @catch_exception
+    def rearm_all(self, action_def, args):
+        self.set.clear_arrangement_clip_envelopes()
 
     @catch_exception
     def get_state(self):
