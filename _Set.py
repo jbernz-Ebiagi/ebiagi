@@ -118,6 +118,7 @@ class Set(EbiagiComponent):
             if self.modules[index] != self.active_module:
 
                 if self.active_module:
+                    self.stop_all_loops()
                     self.active_module.deactivate()
 
                 for router in self.midi_routers and self.audio_routers:

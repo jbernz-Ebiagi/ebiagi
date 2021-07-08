@@ -3,6 +3,7 @@ from ._naming_conventions import *
 from ._Instrument import Instrument
 from ._Loop import Loop
 from ._Snap import Snap
+from ._utils import set_input_routing, set_output_routing
 
 
 class Module(EbiagiComponent):
@@ -20,6 +21,8 @@ class Module(EbiagiComponent):
         self.snaps = []
 
         self.log('Initializing Module %s...' % self.short_name)
+
+        set_output_routing(self._track, 'OUTPUT')
 
         i = list(self._song.tracks).index(track) + 1
         while not is_module(self._song.tracks[i].name) and self._song.tracks[i].is_grouped:

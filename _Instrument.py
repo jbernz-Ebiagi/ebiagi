@@ -48,7 +48,7 @@ class Instrument(EbiagiComponent):
 
     def activate(self):
         if len(self._track.devices) > 0:
-            self._track.devices[0].parameters[0].value = 1
+            self._get_instrument_device().parameters[0].value = 1
             for clip_slot in self._track.clip_slots:
                 if clip_slot.has_clip and clip_slot.clip.name == 'INIT':
                     clip_slot.fire()
@@ -72,7 +72,7 @@ class Instrument(EbiagiComponent):
 
     def deactivate(self):
         if len(self._track.devices) > 0:
-            self._track.devices[0].parameters[0].value = 0
+            self._get_instrument_device().parameters[0].value = 0
             for track in [self._track] + self._ex_midi + self._ex_audio:
                 if track.can_be_armed:
                     track.arm = 0 
@@ -122,6 +122,11 @@ class Instrument(EbiagiComponent):
         else:
             set_input_routing(track, router._track.name)
 
+    def _get_instrument_device(self):
+        for device in self._track.devices:
+            if device.can_have_chains:
+                return device
+
     def is_armed(self):
         return False
 
@@ -170,10 +175,13 @@ class Instrument(EbiagiComponent):
             track.current_monitoring_state = 2
         elif is_trunk_track(track.name):
             track.current_monitoring_state = 0
-            track.arm = 0
+            if track.can_be_armed:
+                track.arm = 0
         elif is_compiled_track(track.name):
             track.current_monitoring_state = 2
-            track.arm = 1
+            if track.can_be_armed:
+                track.arm = 1
         else:
             track.current_monitoring_state = 1
-            track.arm = 1
+            if track.can_be_armed:
+                track.arm = 1

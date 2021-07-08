@@ -15,7 +15,7 @@ class SnapControl(Instrument):
         self._snap_map = []
         self.selected_snap = None
 
-        self._knob = self._track.devices[0].parameters[1]
+        self._knob = self._get_instrument_device().parameters[1]
         self._reset_knob = False
 
         self._on_macro_value_changed.subject = self._knob
@@ -32,13 +32,14 @@ class SnapControl(Instrument):
         self._assign_to_inputs()
 
     def select_snap(self, snap):
+        self._reset_knob = True
         self.selected_snap = snap
         self._set_snap_map(snap)
+        self._reset_knob = False
 
     def _set_snap_map(self, snap):
         self._snap_map = []
         self._knob.value = 0
-        self._reset_knob = True
         for snap_param in snap.snap_params:
             s = {
                 'param': snap_param.param,
@@ -50,7 +51,6 @@ class SnapControl(Instrument):
     @subject_slot('value')
     def _on_macro_value_changed(self):
         if self._reset_knob:
-            self._reset_knob = False
             return
         for s in self._snap_map:
             new_value = s['starting_value'] + s['diff']*self._knob.value/self._knob.max
