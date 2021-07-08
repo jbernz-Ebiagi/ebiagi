@@ -13,6 +13,7 @@ class Module(EbiagiComponent):
         self._track = track
         self._set = Set
         self.instruments = []
+        self.sends = []
         self.loops = {}
 
         self.short_name = get_short_name(track.name.split('.')[0])
@@ -38,6 +39,11 @@ class Module(EbiagiComponent):
                     a += 1
                 self.instruments.append(instr)
 
+            if is_send(self._song.tracks[i].name):
+                send_name = get_short_name(self._song.tracks[i].name.split('.')[1])
+                set_input_routing(self._song.tracks[i], send_name+"-Return")
+                self.sends.append(self._song.tracks[i])
+
             i += 1
 
         for scene in self._song.scenes:
@@ -53,6 +59,8 @@ class Module(EbiagiComponent):
         self.log('Activating %s...' % self.short_name)
         for instrument in self.instruments:
             instrument.activate()
+        for send in self.sends:
+            send.current_monitoring_state = 0
         self._track.fold_state = 0
         self._track.mute = 0
 
@@ -60,6 +68,8 @@ class Module(EbiagiComponent):
         self.log('Deactivating %s...' % self.short_name)
         for instrument in self.instruments:
             instrument.deactivate()
+        for send in self.sends:
+            send.current_monitoring_state = 2
         for loop in self.loops.values():
             loop.stop()
         self._track.fold_state = 1

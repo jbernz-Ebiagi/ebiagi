@@ -24,6 +24,9 @@ def is_module(name):
 def is_instrument(name):
     return name.startswith('I[')
 
+def is_send(name):
+    return name.startswith('S[')
+
 def is_ex_instrument_track(name):
     return name.startswith('X[')
 
