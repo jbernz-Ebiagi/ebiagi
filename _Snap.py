@@ -17,7 +17,7 @@ class Snap(EbiagiComponent):
                     if isinstance(d['param_index'], list):
                         self.log('wee')
                     try:
-                        self.snap_params.append(SnapParam(instrument, parse_param_index(d['param_index'], instrument._track.devices[0]), d['param_value']))
+                        self.snap_params.append(SnapParam(instrument, parse_param_index(d['param_index'], instrument._get_instrument_device()), d['param_value']))
                     except:
                         self.log('could not load snap')
 
@@ -53,7 +53,7 @@ class SnapParam:
     def get_data(self):
         return {
             "instr_name": get_short_name(self.instrument._track.name),
-            "param_index": get_param_index(self.param, self.instrument._track.devices[0]),
+            "param_index": get_param_index(self.param, self.instrument._get_instrument_device()),
             "param_value": self.value
         }
 

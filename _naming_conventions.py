@@ -47,7 +47,7 @@ def get_short_name(name):
     if res:
         return re.search(r"\[([A-Za-z0-9_ ,-.]+)\]", name).group(1)
     else:
-        return None
+        return ''
 
 #Clip name: (NAME) COMMAND(1) COMMAND(2) COMMAND
 def parse_clip_name(name):

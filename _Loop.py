@@ -212,6 +212,9 @@ class ClipSlot(EbiagiComponent):
                 if 'STOP' in command:
                     self._track.stop_all_clips()
 
+                if 'MUTE' in command:
+                    self._instrument.mute_loops()
+
     
     def run_deselect_commands(self):
         if self._slot.has_clip:
@@ -226,6 +229,9 @@ class ClipSlot(EbiagiComponent):
                                 can_stop = False
                         if can_stop:
                             list(self._track.clip_slots)[self._set.get_scene_index('STOPCLIP')].fire()
+
+                    if 'MUTE' in command:
+                        self._instrument.unmute_loops()         
 
             self._held = False
 

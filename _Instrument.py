@@ -48,7 +48,8 @@ class Instrument(EbiagiComponent):
 
     def activate(self):
         if len(self._track.devices) > 0:
-            self._get_instrument_device().parameters[0].value = 1
+            if(self._get_instrument_device()):
+                self._get_instrument_device().parameters[0].value = 1
             for clip_slot in self._track.clip_slots:
                 if clip_slot.has_clip and clip_slot.clip.name == 'INIT':
                     clip_slot.fire()
@@ -72,7 +73,8 @@ class Instrument(EbiagiComponent):
 
     def deactivate(self):
         if len(self._track.devices) > 0:
-            self._get_instrument_device().parameters[0].value = 0
+            if(self._get_instrument_device()):
+                self._get_instrument_device().parameters[0].value = 0
             for track in [self._track] + self._ex_midi + self._ex_audio:
                 if track.can_be_armed:
                     track.arm = 0 
@@ -117,8 +119,7 @@ class Instrument(EbiagiComponent):
             set_input_routing(track, 'No Input')
             set_output_routing(track, router._track.name)
         elif is_compiled_track(track.name):
-            set_output_routing(track, self._track.name)
-            set_input_routing(track, router._track.name)
+            set_input_routing(track, self._track.name)
         else:
             set_input_routing(track, router._track.name)
 
@@ -166,8 +167,6 @@ class Instrument(EbiagiComponent):
         for track in [self._track] + self._ex_midi + self._ex_audio:
             for clip in track.arrangement_clips:
                 if clip.has_envelopes:
-                    self.log('clear envelope')
-                    self.log(track.name)
                     clip.clear_all_envelopes()
 
     def set_default_monitoring_state(self, track):
