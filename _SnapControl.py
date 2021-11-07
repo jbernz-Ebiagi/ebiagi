@@ -15,7 +15,7 @@ class SnapControl(Instrument):
         self._snap_map = []
         self.selected_snap = None
 
-        self._knob = self._get_instrument_device().parameters[1]
+        self._knob = self.get_instrument_device().parameters[1]
         self._reset_knob = False
 
         self._on_macro_value_changed.subject = self._knob

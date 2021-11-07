@@ -1,9 +1,10 @@
+from _Framework.ControlSurface import get_control_surfaces
 from ._EbiagiComponent import EbiagiComponent
 from ._naming_conventions import *
 
 class Input(EbiagiComponent):
 
-    def __init__(self, track, Set, update=None):
+    def __init__(self, track, Set):
         super(Input, self).__init__()
         self._track = track
         self._set = Set
@@ -16,8 +17,6 @@ class Input(EbiagiComponent):
 
         self.short_name = get_short_name(track.name)
 
-        self.update_device = update
-
         self.log('Initializing Input %s...' % self.short_name)
 
     def add_instrument(self, instrument):
@@ -27,18 +26,12 @@ class Input(EbiagiComponent):
         else:
             for instrument in self._instruments:
                 instrument.disarm()
-
-    def reset_instruments(self, instrument):
-        self._instruments = set([])
     
     def set_instrument(self, instrument):
-        for instrument in self._instruments:
-            instrument.disarm()
+        for i in self._instruments:
+            i.disarm()
         self.selected_instrument = instrument
         self.selected_instrument.arm()
-        #if selecting a new instrument, send feedback to input hardware
-        if self.update_device:
-            self.update_device(instrument._track)
 
     def has_instrument(self, instrument):
         return self.selected_instrument is instrument
@@ -56,4 +49,71 @@ class Input(EbiagiComponent):
         self._instruments = set([])
         if self.selected_instrument:
             self.selected_instrument.disarm()
-        self.phantom_instrument = None
+
+
+####
+
+NUM_DYNAMIC_ENCODERS = 12
+
+color_letters = [
+	'B' #blue
+	'p', #pink
+	'L', #lavender
+	'R', #red
+	'G', #green
+	'W', #white
+	'Y', #gold,
+	'O', #orange
+	'T', #teal
+	'P' #purple
+]
+
+def get_manual_color(name):
+    if name.startswith('[') and name[1] in color_letters:
+        return name[1]
+
+class MFTInput(EbiagiComponent):
+
+    def __init__(self, Set, twister_control):
+        super(MFTInput, self).__init__()
+        self._set = Set
+        self._instruments = set([])
+
+        self.selected_instrument = None
+
+        self.has_audio_input = False
+        self.has_midi_input = False
+
+        self.short_name = 'MFT'
+
+        self.log('Initializing MFT Input')
+        self.twister_control = twister_control
+
+
+    def add_instrument(self, instrument):
+        self._instruments.add(instrument)
+        if len(self._instruments) == 1:
+            self.set_instrument(instrument)
+        else:
+            self.clear()
+
+    def set_instrument(self, instrument):
+        self.selected_instrument = instrument
+        i = 0
+        while i < NUM_DYNAMIC_ENCODERS:
+            param = instrument.get_instrument_device().parameters[i+1]
+            self.twister_control.assign_encoder(i, param, param.min, param.max, get_manual_color(param.name))
+            i += 1
+
+    def clear(self):
+        self._instruments = set([])
+        i = 0
+        while i < NUM_DYNAMIC_ENCODERS:
+            self.twister_control.clear_encoder(i)
+            i += 1
+
+    def is_active(self):
+        return self.selected_instrument != None
+
+    def empty(self):
+        return len(self._instruments) == 0

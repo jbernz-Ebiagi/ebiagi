@@ -1,15 +1,14 @@
-from _Framework.ControlSurface import get_control_surfaces
 from ._EbiagiComponent import EbiagiComponent
 from ._naming_conventions import *
 from ._Module import Module
-from ._Input import Input
+from ._Input import Input, MFTInput
 from ._Instrument import Instrument
 from ._SnapControl import SnapControl
 from ._utils import qwerty_order
 
 class Set(EbiagiComponent):
 
-    def __init__(self):
+    def __init__(self, twister_control):
         super(Set, self).__init__()
 
         self.loading = True
@@ -36,11 +35,18 @@ class Set(EbiagiComponent):
         m = 0
         a = 0
 
-        twister_control = None
+        self.twister_control = twister_control
+        
+        tempo = self.song().master_track.mixer_device.song_tempo
+        self.twister_control.assign_encoder(13, tempo, 80, 160, 'R')
 
-        for s in get_control_surfaces():
-            if s.__class__.__name__ == 'twister':
-                twister_control = s
+        volume = self.song().master_track.mixer_device.volume
+        self.twister_control.assign_encoder(14, volume, volume.min, volume.max, 'R')
+
+        xfade = self.song().master_track.mixer_device.crossfader
+        self.twister_control.assign_encoder(15, xfade, xfade.min, xfade.max, 'B')
+
+        self.midi_inputs.append(MFTInput(self, self.twister_control))
 
         for track in self._song.tracks:
 
@@ -51,11 +57,6 @@ class Set(EbiagiComponent):
                     self.midi_inputs.append(ipt)
                     if ipt.short_name == 'WOOT':
                         self.woot = ipt
-                    if ipt.short_name == 'MFT1' and twister_control:
-                        ipt.update_device = twister_control.set_instrument_dials
-                    if ipt.short_name == 'MFT2':
-                        ipt.update_device = twister_control.set_fx_dials
-                                
                 elif track.has_audio_input:
                     self.audio_inputs.append(ipt)
 
@@ -71,15 +72,15 @@ class Set(EbiagiComponent):
                 sc = SnapControl(track, self)
                 m += 1
                 self.snap_control = sc
-                if twister_control:
-                    twister_control.set_gfx_dial(sc._knob,12)
+                if self.twister_control:
+                    self.twister_control.assign_encoder(12, sc._knob, sc._knob.min, sc._knob.max, 'B')
 
             #Add global loop
             if is_global_loop_track(track.name):
                 self.global_loop_track = track
                 self.global_loop = track.clip_slots[0]
 
-        twister_control.set_xfade_dial()
+        # twister_control.set_xfade_dial()
 
         for track in self._song.tracks:
 
@@ -128,7 +129,7 @@ class Set(EbiagiComponent):
         if not instrument:
             instrument = self.active_module.instruments[index]
         self.held_instruments.add(instrument)
-        if len(self.held_instruments) > 1:
+        if len(self.held_instruments) == 1:
             instrument.select()
 
     def deselect_instrument(self, index, instrument=None):

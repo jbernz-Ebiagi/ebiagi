@@ -44,13 +44,13 @@ class Instrument(EbiagiComponent):
         elif is_compiled_track(track.name):
             set_input_routing(track, self._track.name)
         else:
-            if(self._input):
+            if(self._input and (self._input.has_midi_input or self._input.has_audio_input)):
                 set_input_routing(track, self._input._track.name)
 
     def activate(self):
         if len(self._track.devices) > 0:
-            if(self._get_instrument_device()):
-                self._get_instrument_device().parameters[0].value = 1
+            if(self.get_instrument_device()):
+                self.get_instrument_device().parameters[0].value = 1
             for clip_slot in self._track.clip_slots:
                 if clip_slot.has_clip and clip_slot.clip.name == 'INIT':
                     clip_slot.fire()
@@ -61,8 +61,8 @@ class Instrument(EbiagiComponent):
 
     def deactivate(self):
         if len(self._track.devices) > 0:
-            if(self._get_instrument_device()):
-                self._get_instrument_device().parameters[0].value = 0
+            if(self.get_instrument_device()):
+                self.get_instrument_device().parameters[0].value = 0
             for track in [self._track] + self._ex_tracks:
                 if track.can_be_armed:
                     track.arm = 0 
@@ -70,26 +70,25 @@ class Instrument(EbiagiComponent):
     def select(self):
         self._song.view.selected_track = self._track
         if self._input:
-            self.input.set_instrument(self)
+            self._input.set_instrument(self)
 
     # def deselect(self):
     #    self.input.remove_instrument(self)
 
-    def _get_instrument_device(self):
+    def get_instrument_device(self):
         for device in self._track.devices:
             if device.can_have_chains:
                 return device
 
     def arm(self):
         for track in [self._track] + self._ex_tracks:
-            if track.can_be_armed and track.input_routing_type.display_name is self._input.name:
+            if track.can_be_armed and track.input_routing_type.display_name == self._input._track.name:
                 track.arm = 1
 
     def disarm(self):
         for track in [self._track] + self._ex_tracks:
-            if track.can_be_armed and track.input_routing_type.display_name is self._input.name:
+            if track.can_be_armed and track.input_routing_type.display_name == self._input._track.name:
                 track.arm = 0
-
 
     def is_armed(self):
         return False

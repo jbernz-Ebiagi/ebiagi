@@ -13,15 +13,11 @@ def get_state(Set):
         metronome = Set._song.metronome > 0
 
         for ipt in Set.midi_inputs + Set.audio_inputs:       
-            if len(ipt._instruments) > 1:
-                inputs[ipt.short_name] = 'white'
-            elif len(ipt._instruments) == 1:
-                inputs[ipt.short_name] = color_name(next(iter(ipt._instruments))._track.color_index)
-            elif ipt.phantom_instrument:
-                inputs[ipt.short_name] = color_name(ipt.phantom_instrument._track.color_index)
+            if ipt.selected_instrument != None:
+                inputs[ipt.short_name] = color_name(ipt.selected_instrument._track.color_index)
             else:
                 inputs[ipt.short_name] = 'dark'
-            if ipt._track.mute == 1:
+            if not ipt.is_active():
                 inputs[ipt.short_name] = 'dark'
 
         for module in Set.modules:

@@ -2,6 +2,7 @@
 import Live, sys
 import logging
 logger = logging.getLogger(__name__)
+from _Framework.ControlSurface import get_control_surfaces
 from _Framework.CompoundComponent import CompoundComponent
 from _Framework.SubjectSlot import Subject
 from ._utils import catch_exception, clear_log_file
@@ -26,6 +27,11 @@ class EbiagiBase(CompoundComponent, Subject):
 
         self.log('reading xcontrols...')
         handle_xcontrol_and_binding_settings('Main', self, self.log)
+
+        self.twister_control = None
+        for s in get_control_surfaces():
+            if s.__class__.__name__ == 'twister':
+                self.twister_control = s
 
         self.create_actions()
         self.rebuild_set()
@@ -81,7 +87,8 @@ class EbiagiBase(CompoundComponent, Subject):
 
     @catch_exception
     def rebuild_set(self, action_def='', args=''):
-        self.set = Set()
+        self.twister_control.rebuild()
+        self.set = Set(self.twister_control)
 
     @catch_exception
     def activate_module(self, action_def, args):
