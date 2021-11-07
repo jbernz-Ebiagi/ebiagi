@@ -120,7 +120,6 @@ class XControlComponent(EbiagiComponent):
 
     @subject_slot_group('value')
     def _on_button_value(self, value, button):
-        self.log(button.name)
         parsed_xcontrol = button.name.split(' ')
         action_def = parsed_xcontrol[0]
         args = None

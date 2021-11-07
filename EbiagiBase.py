@@ -72,14 +72,11 @@ class EbiagiBase(CompoundComponent, Subject):
         self.add_global_action('woot_arp_on', self.woot_arp_on)
         self.add_global_action('woot_arp_off', self.woot_arp_off)
         self.add_global_action('woot_arp_style', self.woot_arp_style)
-        self.add_global_action('rearm_all', self.rearm_all)
 
         self.socket = Socket(self)  
 
     @catch_exception
     def handle_action(self, action_def, args):
-        self.log(action_def)
-        self.log(args)
         self.actions[action_def](action_def, args)
 
     @catch_exception
@@ -112,7 +109,6 @@ class EbiagiBase(CompoundComponent, Subject):
 
     @catch_exception    
     def select_loop(self, action_def, args):
-        self.log(args)
         self.set.select_loop(args)
 
     @catch_exception    
@@ -218,12 +214,6 @@ class EbiagiBase(CompoundComponent, Subject):
     def woot_arp_style(self, action_def, args):
         self.set.woot_arp_style(args)
 
-    #TODO: update name
-    #For now clears envelopes for all arrangement clips
-    @catch_exception
-    def rearm_all(self, action_def, args):
-        self.set.clear_arrangement_clip_envelopes()
-
     @catch_exception
     def get_state(self):
         return get_state(self.set)
@@ -235,7 +225,6 @@ class EbiagiBase(CompoundComponent, Subject):
         """ Returns whether the given message can be registered for the script with the
         given identifier. """
         return message not in self._midi_message_registry.get(identifier, [])
-
 
     def register_midi_message(self, message, identifier):
         """ Registers the given message for the script with the given identifier. """

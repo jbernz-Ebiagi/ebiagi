@@ -3,7 +3,6 @@ from ._EbiagiComponent import EbiagiComponent
 from ._naming_conventions import *
 from ._Module import Module
 from ._Input import Input
-from ._Router import Router
 from ._Instrument import Instrument
 from ._SnapControl import SnapControl
 from ._utils import qwerty_order
@@ -20,9 +19,6 @@ class Set(EbiagiComponent):
         self.audio_inputs = []
 
         self.woot = None
-
-        self.midi_routers = []
-        self.audio_routers = []
         
         self.snap_control = None
 
@@ -63,31 +59,16 @@ class Set(EbiagiComponent):
                 elif track.has_audio_input:
                     self.audio_inputs.append(ipt)
 
-            #Add midi routers       
-            if is_midi_router(track.name):
-                self.midi_routers.append(Router(track, self)) 
-            
-            #Add audio routers       
-            if is_audio_router(track.name):
-                self.audio_routers.append(Router(track, self))
-
         for track in self._song.tracks:
 
             #Add Global Instrument
             if is_global_instrument(track.name):
                 instr = Instrument(track, self)
-                if instr.has_midi_input():
-                    instr.set_midi_router(self.midi_routers[m])
-                    m += 1
-                if instr.has_audio_input():
-                    instr.set_audio_router(self.audio_routers[a])
-                    a += 1
                 self.global_instruments.append(instr)
 
             #Add Snap Control
             if is_snap_control(track.name):
                 sc = SnapControl(track, self)
-                sc.set_midi_router(self.midi_routers[m])
                 m += 1
                 self.snap_control = sc
                 if twister_control:
@@ -121,17 +102,12 @@ class Set(EbiagiComponent):
                     self.stop_all_loops()
                     self.active_module.deactivate()
 
-                for router in self.midi_routers and self.audio_routers:
-                    router.set_instrument(None)
-
                 for ipt in self.midi_inputs + self.audio_inputs:
-                    self.log('clear input')
                     ipt.clear()
 
                 self.modules[index].activate()
                 self.active_module = self.modules[index]
                 self.smart_loop = None
-                self._update_routers()
             else:
                 self.message('Module already active')
         else:
@@ -151,18 +127,16 @@ class Set(EbiagiComponent):
     def select_instrument(self, index, instrument=None):
         if not instrument:
             instrument = self.active_module.instruments[index]
-        self.log(instrument.short_name)
         self.held_instruments.add(instrument)
-        instrument.select()
-        self._update_routers()
+        if len(self.held_instruments) > 1:
+            instrument.select()
 
     def deselect_instrument(self, index, instrument=None):
         if not instrument:
             instrument = self.active_module.instruments[index]       
         if instrument in self.held_instruments: 
             self.held_instruments.remove(instrument)
-        instrument.deselect()
-        self._update_routers()
+        #instrument.deselect()
 
     def stop_instrument(self, index, instrument=None):
         if not instrument:
@@ -256,7 +230,6 @@ class Set(EbiagiComponent):
                     for clip_slot in loop._clip_slots:
                         self.log(clip_slot._instrument.is_selected())
                         if woot.has_instrument(clip_slot._instrument) and clip_slot.will_record_on_start() and not clip_slot._track.playing_slot_index > 0:
-                            self.log('select loop')
                             loop.select()
                             self.smart_loop = loop
                             return
@@ -306,18 +279,3 @@ class Set(EbiagiComponent):
             if name == scene.name:
                 return i
             i += 1
-
-    def _update_routers(self):
-        def update_router(ipt, index):
-                if not ipt.empty():
-                    if ipt.has_midi_input:
-                        for router in self.midi_routers:
-                            router.update_input(ipt, index)
-                    if ipt.has_audio_input:
-                        for router in self.audio_routers:
-                            router.update_input(ipt, index)      
-        for i, ipt in  enumerate(self.midi_inputs):
-            update_router(ipt, i)
-        for i, ipt in  enumerate(self.audio_inputs):
-            update_router(ipt, i)
-     

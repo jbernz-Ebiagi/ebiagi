@@ -31,12 +31,6 @@ class Module(EbiagiComponent):
             #Add Instruments
             if is_instrument(self._song.tracks[i].name):
                 instr = Instrument(self._song.tracks[i], Set, self)
-                if instr.has_midi_input() and len(Set.midi_routers) > m:
-                    instr.set_midi_router(Set.midi_routers[m])
-                    m += 1
-                if instr.has_audio_input() and len(Set.audio_routers) > a:
-                    instr.set_audio_router(Set.audio_routers[a])
-                    a += 1
                 self.instruments.append(instr)
 
             if is_send(self._song.tracks[i].name):
@@ -98,4 +92,3 @@ class Module(EbiagiComponent):
         self._track.set_data('snaps', data)
         self._snap_data = data
         self.log('saved snaps')
-        self.log(self._track.get_data('snaps', False))

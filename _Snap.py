@@ -13,9 +13,6 @@ class Snap(EbiagiComponent):
         for d in data:
             for instrument in Module.instruments:
                 if d['instr_name'] == get_short_name(instrument._track.name):
-                    self.log(d['param_index'])
-                    if isinstance(d['param_index'], list):
-                        self.log('wee')
                     try:
                         self.snap_params.append(SnapParam(instrument, parse_param_index(d['param_index'], instrument._get_instrument_device()), d['param_value']))
                     except:
