@@ -10,11 +10,14 @@ class Snap(EbiagiComponent):
         self.snap_params = []
         self.ramping_params = []
 
+        self.log('lopad snap')
+        self.log(data)
+
         for d in data:
             for instrument in Module.instruments:
                 if d['instr_name'] == get_short_name(instrument._track.name):
                     try:
-                        self.snap_params.append(SnapParam(instrument, parse_param_index(d['param_index'], instrument._get_instrument_device()), d['param_value']))
+                        self.snap_params.append(SnapParam(instrument, parse_param_index(d['param_index'], instrument.get_instrument_device()), d['param_value']))
                     except:
                         self.log('could not load snap')
 
@@ -37,6 +40,8 @@ class Snap(EbiagiComponent):
         data = []
         for snap_param in self.snap_params:
             data.append(snap_param.get_data())
+        self.log('get snap data')
+        self.log(data)
         return data
 
 
@@ -50,7 +55,7 @@ class SnapParam:
     def get_data(self):
         return {
             "instr_name": get_short_name(self.instrument._track.name),
-            "param_index": get_param_index(self.param, self.instrument._get_instrument_device()),
+            "param_index": get_param_index(self.param, self.instrument.get_instrument_device()),
             "param_value": self.value
         }
 

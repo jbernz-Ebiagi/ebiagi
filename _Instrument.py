@@ -106,10 +106,7 @@ class Instrument(EbiagiComponent):
         return self in self._set.held_instruments
 
     def audio_in_armed(self):
-        for ipt in self._audio_inputs:
-            if ipt.has_instrument(self) and ipt.is_active():
-                return True
-        return False
+        return self._input.has_instrument(self) and self._input.is_active()
 
     def stop(self):
         for track in [self._track] + self._ex_tracks:

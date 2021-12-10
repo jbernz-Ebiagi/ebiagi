@@ -1,6 +1,8 @@
 from ._EbiagiComponent import EbiagiComponent
 from ._naming_conventions import *
 from ._utils import is_empty_midi_clip
+from functools import partial
+import Live
 
 class Loop(EbiagiComponent):
 
@@ -163,7 +165,18 @@ class ClipSlot(EbiagiComponent):
                 self.deactivate_clip()
                 return False
         self._slot.fire()
+        self._slot.clip.add_playing_status_listener(partial(self.loop_clip,self._slot.clip))
         return True
+
+    def loop_clip(self, clip):
+        self.log('wee')
+        if not clip.is_recording:
+            def woo():
+                self.log('woo')
+                clip.loop_end = clip.length
+                clip.loop_start = clip.length - 4.0
+                clip.start_marker = clip.loop_start
+            self.canonical_parent.schedule_message(0, woo)
 
     def is_group_clip(self):
         return self._slot.controls_other_clips

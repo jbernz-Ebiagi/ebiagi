@@ -28,9 +28,6 @@ class SnapControl(Instrument):
         self._scheduler = Live.Base.Timer(callback=self.on_tick, interval=1, repeat=True)
         self._scheduler.start()
 
-    def select(self):
-        self._assign_to_inputs()
-
     def select_snap(self, snap):
         self._reset_knob = True
         self.selected_snap = snap

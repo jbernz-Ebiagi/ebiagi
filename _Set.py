@@ -177,10 +177,10 @@ class Set(EbiagiComponent):
 
     def select_snap(self, index):
         self.snap_control.select_snap(self.active_module.snaps[index])
-        self.select_instrument(None, self.snap_control)
 
     def deselect_snap(self, index):       
-        self.deselect_instrument(None, self.snap_control)
+        #do nothing
+        self.log('')
 
     def assign_snap(self, index):
         param = self._song.view.selected_parameter
@@ -229,7 +229,6 @@ class Set(EbiagiComponent):
                 loop = self.active_module.loops[key]
                 if loop and not loop.has_clips():
                     for clip_slot in loop._clip_slots:
-                        self.log(clip_slot._instrument.is_selected())
                         if woot.has_instrument(clip_slot._instrument) and clip_slot.will_record_on_start() and not clip_slot._track.playing_slot_index > 0:
                             loop.select()
                             self.smart_loop = loop

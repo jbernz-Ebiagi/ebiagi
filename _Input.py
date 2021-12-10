@@ -56,7 +56,7 @@ class Input(EbiagiComponent):
 NUM_DYNAMIC_ENCODERS = 12
 
 color_letters = [
-	'B' #blue
+	'B', #blue
 	'p', #pink
 	'L', #lavender
 	'R', #red
