@@ -10,7 +10,7 @@ class Snap(EbiagiComponent):
         self.snap_params = []
         self.ramping_params = []
 
-        self.log('lopad snap')
+        self.log('load snap')
         self.log(data)
 
         for d in data:

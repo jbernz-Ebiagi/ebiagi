@@ -70,21 +70,29 @@ class Module(EbiagiComponent):
         self._track.mute = 1
 
     def assign_snap(self, index, param, track):
-        self.snaps[index] = Snap([], self, self._set)
+        # self.snaps[index] = Snap([], self, self._set)
+        self.log(param)
+        self.log(self.snaps[index].get_data())
         for instrument in self.instruments:
             if instrument._track == track:
-                i = 1
-                while i < 16:
-                    self.snaps[index].create_param(instrument, instrument.get_instrument_device().parameters[i])
-                    i += 1
-                self.message('Saved snap from %s to snap %s' % (instrument.short_name, str(index+1)))
+                if(param):
+                    if not self.snaps[index].has_param(param):
+                        self.snaps[index].create_param(instrument, param)
+                        self.message('Added param %s to snap %s at %s' % (param.name, str(index+1), str(param.value)))
+                    else:
+                        self.snaps[index].remove_param(param)
+                        self.message('Removed param %s from snap %s' % (param.name, str(index+1)))
+                else:
+                    i = 1
+                    while i < 16:
+                        if self.snaps[index].has_param(param):
+                            self.snaps[index].remove_param(param)
+                        self.snaps[index].create_param(instrument, instrument.get_instrument_device().parameters[i])
+                        i += 1
+                    self.message('Saved snap from %s to snap %s' % (instrument.short_name, str(index+1)))
                 self._save_snaps()
-                # if not self.snaps[index].has_param(param):
-                #     self.snaps[index].create_param(instrument, param)
-                #     self.message('Added param %s to snap %s at %s' % (param.name, str(index+1), str(param.value)))
-                # else:
-                #     self.snaps[index].remove_param(param)
-                #     self.message('Removed param %s from snap %s' % (param.name, str(index+1)))
+                self.log(self.snaps[index].get_data())
+
 
     def clear_snap(self, index):
         self.snaps[index] = Snap([], self, self._set)

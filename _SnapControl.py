@@ -47,6 +47,7 @@ class SnapControl(Instrument):
 
     @subject_slot('value')
     def _on_macro_value_changed(self):
+        self.log(self._knob.value)
         if self._reset_knob:
             return
         for s in self._snap_map:

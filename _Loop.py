@@ -165,7 +165,7 @@ class ClipSlot(EbiagiComponent):
                 self.deactivate_clip()
                 return False
         self._slot.fire()
-        self._slot.clip.add_playing_status_listener(partial(self.loop_clip,self._slot.clip))
+        # self._slot.clip.add_playing_status_listener(partial(self.loop_clip,self._slot.clip))
         return True
 
     def loop_clip(self, clip):

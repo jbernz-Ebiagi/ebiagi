@@ -46,7 +46,7 @@ class Set(EbiagiComponent):
         xfade = self.song().master_track.mixer_device.crossfader
         self.twister_control.assign_encoder(15, xfade, xfade.min, xfade.max, 'B')
 
-        self.midi_inputs.append(MFTInput(self, self.twister_control))
+        self.mft_input = MFTInput(self, self.twister_control)
 
         for track in self._song.tracks:
 
@@ -131,6 +131,8 @@ class Set(EbiagiComponent):
         self.held_instruments.add(instrument)
         if len(self.held_instruments) == 1:
             instrument.select()
+            #always assign mft to selected instrument
+            self.mft_input.set_instrument(instrument)
 
     def deselect_instrument(self, index, instrument=None):
         if not instrument:

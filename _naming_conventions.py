@@ -49,7 +49,7 @@ def get_short_name(name):
     else:
         return ''
 
-#Clip name: (NAME) COMMAND(1) COMMAND(2) COMMAND
+#Clip name: {NAME} COMMAND(1) COMMAND(2) COMMAND
 def parse_clip_name(name):
     match = re.search('\{([^}]+)', name)
     if match is not None:

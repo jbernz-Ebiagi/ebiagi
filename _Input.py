@@ -68,9 +68,28 @@ color_letters = [
 	'P' #purple
 ]
 
-def get_manual_color(name):
+color_index_map = {
+    9: 'B',
+    12: 'p',
+    39: 'L',
+    56: 'R',
+    61: 'G',
+    69: 'W',
+    13: 'W',
+    59: 'Y',
+    1: 'O',
+    20: 'T',
+    24: 'P',
+    55: 'W',
+    'none': None
+}
+
+def get_manual_color(name, instrument):
     if name.startswith('[') and name[1] in color_letters:
         return name[1]
+    elif not 'Macro' in name:
+        return color_index_map[instrument._track.color_index]
+    return None
 
 class MFTInput(EbiagiComponent):
 
@@ -102,7 +121,7 @@ class MFTInput(EbiagiComponent):
         i = 0
         while i < NUM_DYNAMIC_ENCODERS:
             param = instrument.get_instrument_device().parameters[i+1]
-            self.twister_control.assign_encoder(i, param, param.min, param.max, get_manual_color(param.name))
+            self.twister_control.assign_encoder(i, param, param.min, param.max, get_manual_color(param.name, instrument))
             i += 1
 
     def clear(self):

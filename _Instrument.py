@@ -19,11 +19,12 @@ class Instrument(EbiagiComponent):
 
         self.log('Initializing Instrument %s...' % self.short_name)
 
-        input_name = get_short_name(track.name.split('.')[1])
-        try:
-            self._input = Set.get_input(input_name)
-        except:
-            self.log('Unable to locate input: %s', input_name)
+        if len(track.name.split('.')) > 1: 
+            input_name = get_short_name(track.name.split('.')[1])
+            try:
+                self._input = Set.get_input(input_name)
+            except:
+                self.log('Unable to locate input: %s', input_name)
             
         #Add Ex Tracks
         i = list(self._song.tracks).index(track) + 1
@@ -116,7 +117,8 @@ class Instrument(EbiagiComponent):
         for track in [self._track] + self._ex_tracks:
             if not is_source_track(track.name):
                 track.current_monitoring_state = 0
-                track.arm = 0
+                if track.can_be_armed:
+                    track.arm = 0
 
     def unmute_loops(self):
         for track in [self._track] + self._ex_tracks:
@@ -136,10 +138,10 @@ class Instrument(EbiagiComponent):
             if track.can_be_armed:
                 track.arm = 0
         elif is_compiled_track(track.name):
-            track.current_monitoring_state = 2
+            track.current_monitoring_state = 0
             if track.can_be_armed:
-                track.arm = 1
+                track.arm = 0
         else:
             track.current_monitoring_state = 1
             if track.can_be_armed:
-                track.arm = 1
+                track.arm = 0
