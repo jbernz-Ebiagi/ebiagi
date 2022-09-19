@@ -39,9 +39,13 @@ def is_trunk_track(name):
 def is_compiled_track(name):
     return name.endswith('[C]')
 
+def is_light_track(name):
+    return name.endswith('[M]')
+
 def is_loop(name):
     return name.startswith('loop[')
-    
+
+
 def get_short_name(name):
     res = re.search(r"\[([A-Za-z0-9_ ,-.]+)\]", name)
     if res:

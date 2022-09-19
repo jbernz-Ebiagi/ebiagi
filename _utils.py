@@ -1,5 +1,6 @@
 import functools
 import traceback
+import Live
 
 def catch_exception(f):
     @functools.wraps(f)
@@ -23,6 +24,11 @@ def set_output_routing(track, routing_name):
     for routing in track.available_output_routing_types:
         if routing.display_name == routing_name:
             track.output_routing_type = routing
+
+def set_output_light_channel(track, color):
+    for channel in track.available_output_routing_channels:
+        if color in channel.display_name:
+            track.output_routing_channel = channel
 
 def is_empty_midi_clip(clip):
     if clip.is_midi_clip:

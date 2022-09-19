@@ -1,7 +1,9 @@
 from functools import partial
+from threading import Timer
 from ._EbiagiComponent import EbiagiComponent
 from ._naming_conventions import *
-from ._utils import set_input_routing, set_output_routing
+from ._utils import set_input_routing, set_output_routing, set_output_light_channel
+import Live
 
 class Instrument(EbiagiComponent):
 
@@ -30,6 +32,7 @@ class Instrument(EbiagiComponent):
         i = list(self._song.tracks).index(track) + 1
         while i < len(self._song.tracks) and is_ex_instrument_track(self._song.tracks[i].name):
             self._ex_tracks.append(self._song.tracks[i])
+            self.log(self._song.tracks[i].name)
             i += 1
 
         #Assign Routing
@@ -44,6 +47,9 @@ class Instrument(EbiagiComponent):
             set_input_routing(track, 'No Input')
         elif is_compiled_track(track.name):
             set_input_routing(track, self._track.name)
+        elif is_light_track(track.name):
+            set_output_routing(track, 'MASK')
+            set_output_light_channel(track, get_short_name(track.name.split('.')[0]))
         else:
             if(self._input and (self._input.has_midi_input or self._input.has_audio_input)):
                 set_input_routing(track, self._input._track.name)
@@ -59,6 +65,20 @@ class Instrument(EbiagiComponent):
                 self.set_default_monitoring_state(track)
         if self._input:
             self._input.add_instrument(self)
+        # Toggle values to fix cc mapper bug
+        def wiggleInstr():
+            i = 1
+            while i < len(self.get_instrument_device().parameters):
+                if self.get_instrument_device().parameters[i].value != self.get_instrument_device().parameters[i].max:
+                    self.get_instrument_device().parameters[i].value = self.get_instrument_device().parameters[i].value + 1
+                    self.get_instrument_device().parameters[i].value = self.get_instrument_device().parameters[i].value - 1
+                else:
+                    self.get_instrument_device().parameters[i].value = self.get_instrument_device().parameters[i].value - 1
+                    self.get_instrument_device().parameters[i].value = self.get_instrument_device().parameters[i].value + 1   
+                i = i+1
+        if 'MFX' in self.short_name:
+            self.wiggleTimer = Live.Base.Timer(callback=wiggleInstr, interval=1000, repeat=False)
+            self.wiggleTimer.start()
 
     def deactivate(self):
         if len(self._track.devices) > 0:
@@ -115,13 +135,16 @@ class Instrument(EbiagiComponent):
 
     def mute_loops(self):
         for track in [self._track] + self._ex_tracks:
-            if not is_source_track(track.name):
-                track.current_monitoring_state = 0
+            if not is_source_track(track.name) and not is_light_track(track.name):
                 if track.can_be_armed:
+                    track.current_monitoring_state = 0
                     track.arm = 0
+                else:
+                    track.mute = 1
 
     def unmute_loops(self):
         for track in [self._track] + self._ex_tracks:
+            track.mute = 0
             self.set_default_monitoring_state(track)
 
     def clear_arrangement_envelopes(self):
@@ -131,6 +154,8 @@ class Instrument(EbiagiComponent):
                     clip.clear_all_envelopes()
 
     def set_default_monitoring_state(self, track):
+        if not track.can_be_armed:
+            return
         if is_source_track(track.name):
             track.current_monitoring_state = 2
         elif is_trunk_track(track.name):
@@ -141,7 +166,14 @@ class Instrument(EbiagiComponent):
             track.current_monitoring_state = 0
             if track.can_be_armed:
                 track.arm = 0
+        elif is_light_track(track.name):
+            if track.can_be_armed:
+                track.current_monitoring_state = 0
+                track.arm = 0
         else:
+            self.log(track.name)
+            self.log(track.can_be_armed)
+            self.log(track.is_foldable)
             track.current_monitoring_state = 1
             if track.can_be_armed:
                 track.arm = 0

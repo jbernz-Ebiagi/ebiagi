@@ -23,7 +23,7 @@ class Module(EbiagiComponent):
 
         self.log('Initializing Module %s...' % self.short_name)
 
-        set_output_routing(self._track, 'OUTPUT')
+        # set_output_routing(self._track, 'OUTPUT')
 
         i = list(self._song.tracks).index(track) + 1
         while not is_module(self._song.tracks[i].name) and self._song.tracks[i].is_grouped:
@@ -47,6 +47,8 @@ class Module(EbiagiComponent):
 
         for snap in self._snap_data:
             self.snaps.append(Snap(snap, self, Set))
+
+        self.clearCrossfade()
 
                 
     def activate(self):
@@ -106,3 +108,18 @@ class Module(EbiagiComponent):
         self._track.set_data('snaps', data)
         self._snap_data = data
         self.log('saved snaps')
+
+    def setCrossfadeA(self):
+        self._track.mixer_device.crossfade_assign = 0
+        for instr in self.instruments:
+            instr._track.mixer_device.crossfade_assign = 0
+
+    def setCrossfadeB(self):
+        self._track.mixer_device.crossfade_assign = 2
+        for instr in self.instruments:
+            instr._track.mixer_device.crossfade_assign = 2
+
+    def clearCrossfade(self):
+        self._track.mixer_device.crossfade_assign = 1
+        for instr in self.instruments:
+            instr._track.mixer_device.crossfade_assign = 1

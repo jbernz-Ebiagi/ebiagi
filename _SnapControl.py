@@ -24,6 +24,7 @@ class SnapControl(Instrument):
         self._last_subdivision = 0
         self._last_tick = 0
         self._ramping_params = []
+        self._scheduled_snap = None
 
         self._scheduler = Live.Base.Timer(callback=self.on_tick, interval=1, repeat=True)
         self._scheduler.start()
@@ -79,6 +80,8 @@ class SnapControl(Instrument):
     def on_tick(self):
         if len(self._ramping_params) > 0:
             self._do_ramp()
+        if self._scheduled_snap != None:
+            self._check_scheduled_snaps()
         self._last_beat = self._song.get_current_beats_song_time().beats
         self._last_subdivision = self._song.get_current_beats_song_time().sub_division
         self._last_tick = self._song.get_current_beats_song_time().ticks
@@ -104,8 +107,20 @@ class SnapControl(Instrument):
 
                 if self._song.get_current_beats_song_time().beats != self._last_beat:
                     param['beats_remaining'] -= 1
-            
 
+    @catch_exception
+    def _check_scheduled_snaps(self):
+        if self._song.get_current_beats_song_time().beats != self._last_beat:
+            self._scheduled_snap['beats_remaining'] -= 1
+        if self._scheduled_snap['beats_remaining'] < 0:
+            self.select_snap(self._scheduled_snap['snap'])
+            self.ramp(0)
+            self._scheduled_snap = None
+
+    @catch_exception
+    def schedule_snap(self, snap, beats):
+        self._scheduled_snap = {'snap': snap, 'beats_remaining': beats}
+            
     def disconnect(self):
         super(SnapControl, self).disconnect()
         self._scheduler.stop()

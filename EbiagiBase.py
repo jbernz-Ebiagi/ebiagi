@@ -78,6 +78,7 @@ class EbiagiBase(CompoundComponent, Subject):
         self.add_global_action('woot_arp_on', self.woot_arp_on)
         self.add_global_action('woot_arp_off', self.woot_arp_off)
         self.add_global_action('woot_arp_style', self.woot_arp_style)
+        self.add_global_action('start_crossfade', self.start_crossfade)
 
         self.socket = Socket(self)  
 
@@ -220,6 +221,10 @@ class EbiagiBase(CompoundComponent, Subject):
     @catch_exception    
     def woot_arp_style(self, action_def, args):
         self.set.woot_arp_style(args)
+
+    @catch_exception    
+    def start_crossfade(self, action_def, args):
+        self.set.start_crossfade()
 
     @catch_exception
     def get_state(self):

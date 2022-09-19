@@ -32,6 +32,9 @@ class Set(EbiagiComponent):
 
         self.smart_loop = None
 
+        self.crossfade_module = None
+        self.active_crossfade = False
+
         m = 0
         a = 0
 
@@ -99,20 +102,33 @@ class Set(EbiagiComponent):
         if self.modules[index]:
             if self.modules[index] != self.active_module:
 
-                if self.active_module:
-                    self.stop_all_loops()
-                    self.active_module.deactivate()
-
                 for ipt in self.midi_inputs + self.audio_inputs:
                     ipt.clear()
 
-                self.modules[index].activate()
-                self.active_module = self.modules[index]
                 self.smart_loop = None
+
+                if self.active_crossfade:
+                    self.modules[index].activate()
+
+                    self.crossfade_module = self.active_module
+                    self.crossfade_module.setCrossfadeA()
+
+                    self.active_module = self.modules[index]
+                    self.active_module.setCrossfadeB()
+
+                else:
+                    if self.active_module:
+                        self.stop_all_loops()
+                        self.active_module.deactivate()
+                    self.modules[index].activate()
+                    self.active_module = self.modules[index]
+                    self.select_instrument(0)
+
             else:
                 self.message('Module already active')
         else:
             self.log('Module index out of bounds')
+
 
     def toggle_input(self, key):
         for ipt in self.midi_inputs + self.audio_inputs:
@@ -173,7 +189,7 @@ class Set(EbiagiComponent):
             instr.mute_loops()
 
     def unmute_all_loops(self):
-        self.global_loop_track.arm = 1
+        # self.global_loop_track.arm = 1
         for instr in self.active_module.instruments:
             instr.unmute_loops()
 
@@ -273,6 +289,16 @@ class Set(EbiagiComponent):
             if param.name == 'Style':
                 param.value = args
 
+
+    def start_crossfade(self):
+        if self.active_crossfade:
+            if self.crossfade_module:
+                self.crossfade_module.deactivate()
+                self.crossfade_module.clearCrossfade()
+                self.crossfade_module = None
+            self.active_module.clearCrossfade()
+        self.setCrossfadeA()
+        self.active_crossfade = not self.active_crossfade
 
     #TODO: Performance can be improved by mapping names
     def get_scene_index(self, name):

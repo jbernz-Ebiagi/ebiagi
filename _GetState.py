@@ -65,10 +65,7 @@ def get_state(Set):
                 'brightness': brightness, 
             })
 
-        global_loop = {
-            'color': 'red' if Set.global_loop.is_recording else 'white', 
-            'brightness': 1 if Set.global_loop.is_playing else 0,
-        }
+        active_crossfade = Set.active_crossfade
 
         smart_record = {
             'color': 'red',
@@ -89,7 +86,7 @@ def get_state(Set):
             'clips': clips,
             'mfx': mfx,
             'ginstr': ginstr,
-            'globalLoop': global_loop,
+            'active_crossfade': active_crossfade,
             'snaps': snaps,
             'metronome': metronome,
             'smart_record': smart_record,

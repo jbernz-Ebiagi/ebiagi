@@ -87,7 +87,7 @@ color_index_map = {
 def get_manual_color(name, instrument):
     if name.startswith('[') and name[1] in color_letters:
         return name[1]
-    elif not 'Macro' in name:
+    elif not 'Macro' in name and not 'ctrl_slider' in name:
         return color_index_map[instrument._track.color_index]
     return None
 
