@@ -41,7 +41,11 @@ def get_state(Set):
         for key in Set.targetted_module.loops:
             loop = Set.targetted_module.loops[key]
             color = 'red' if loop.can_record() and not loop.has_clips() or loop.is_recording() else color_name(loop.color())
-            brightness = 1 if loop.is_playing() else 0
+            brightness = 0
+            if loop.is_playing():
+                brightness = 1
+            if loop.is_triggered():
+                brightness = 3     
             loops[key] = {
                 'color': color, 
                 'brightness': brightness,

@@ -61,7 +61,10 @@ class Loop(EbiagiComponent):
             self._finish_record()
         for clip_slot in self._clip_slots:
             if not clip_slot.is_group_clip():
-                clip_slot.stop()
+                if self.is_triggered():
+                    self._track.stop_all_clips()
+                else:
+                    clip_slot.stop()
 
     def clear(self):
         for clip_slot in self._clip_slots:
@@ -96,6 +99,9 @@ class Loop(EbiagiComponent):
 
     def is_playing(self):
         return self._main_clip_slot.is_playing
+
+    def is_triggered(self):
+        return self._main_clip_slot.is_triggered
 
     def is_recording(self):
         return self._main_clip_slot.is_recording
