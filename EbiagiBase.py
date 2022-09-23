@@ -49,7 +49,9 @@ class EbiagiBase(CompoundComponent, Subject):
         self.log('initializing Ebiagi...')
 
         self.add_global_action('rebuild_set', self.rebuild_set)
-        self.add_global_action('activate_module', self.activate_module)
+        self.add_global_action('assign_module', self.assign_module)
+        self.add_global_action('clear_module', self.clear_module)
+        self.add_global_action('target_module', self.target_module)
         self.add_global_action('toggle_input', self.toggle_input)
         self.add_global_action('select_instrument', self.select_instrument)
         self.add_global_action('deselect_instrument', self.deselect_instrument)
@@ -92,9 +94,24 @@ class EbiagiBase(CompoundComponent, Subject):
         self.set = Set(self.twister_control)
 
     @catch_exception
-    def activate_module(self, action_def, args):
-        index = int(args[-1])
-        self.set.activate_module(index)
+    def assign_module(self, action_def, args):
+        index = int(args.split(',')[0])
+        slot = args.split(',')[1]
+        self.log(index)
+        self.log(slot)
+        self.set.assign_module(index, slot)
+
+    @catch_exception
+    def clear_module(self, action_def, args):
+        self.log(args)
+        slot = args[-1]
+        self.set.clear_module(slot)
+
+    @catch_exception
+    def target_module(self, action_def, args):
+        self.log(args)
+        slot = args[-1]
+        self.set.target_module(slot)
 
     @catch_exception
     def toggle_input(self, action_def, args):

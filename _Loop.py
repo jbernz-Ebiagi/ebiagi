@@ -220,7 +220,7 @@ class ClipSlot(EbiagiComponent):
                         quantize -= 1
                     # if None or less than a measure
                     if quantize == 0 or quantize >= 5:
-                        self._set.snap_control.select_snap(self._set.active_module.snaps[index])
+                        self._set.snap_control.select_snap(self._set.targetted_module.snaps[index])
                         self._set.snap_control.ramp(0)
                     else:
                         beat_divisors = {
@@ -232,11 +232,11 @@ class ClipSlot(EbiagiComponent):
                         beat_divisor = beat_divisors[quantize]
                         total_beats = self._song.get_current_beats_song_time().beats + ((self._song.get_current_beats_song_time().bars - 1) * self._song.signature_numerator)
                         if total_beats % beat_divisor == 0:
-                            self._set.snap_control.select_snap(self._set.active_module.snaps[index])
+                            self._set.snap_control.select_snap(self._set.targetted_module.snaps[index])
                             self._set.snap_control.ramp(0)
                         else:
                             beats_remaining = beat_divisor - (total_beats % beat_divisor) - 1
-                            self._set.snap_control.schedule_snap(self._set.active_module.snaps[index], beats_remaining)
+                            self._set.snap_control.schedule_snap(self._set.targetted_module.snaps[index], beats_remaining)
 
 
                 if 'PLAY' in command:

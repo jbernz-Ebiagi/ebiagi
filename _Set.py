@@ -22,7 +22,11 @@ class Set(EbiagiComponent):
         self.snap_control = None
 
         self.modules = []
-        self.active_module = None
+        self.active_modules = {
+            'A': None,
+            'B': None
+        }
+        self.targetted_module = None
 
         self.global_instruments = []
         self.global_loop = None
@@ -41,13 +45,13 @@ class Set(EbiagiComponent):
         self.twister_control = twister_control
         
         tempo = self.song().master_track.mixer_device.song_tempo
-        self.twister_control.assign_encoder(13, tempo, 80, 160, 'R')
+        self.twister_control.assign_encoder(15, tempo, 126, 144, 'G')
 
-        volume = self.song().master_track.mixer_device.volume
-        self.twister_control.assign_encoder(14, volume, volume.min, volume.max, 'R')
+        # volume = self.song().master_track.mixer_device.volume
+        # self.twister_control.assign_encoder(14, volume, volume.min, volume.max, 'R')
 
-        xfade = self.song().master_track.mixer_device.crossfader
-        self.twister_control.assign_encoder(15, xfade, xfade.min, xfade.max, 'B')
+        # xfade = self.song().master_track.mixer_device.crossfader
+        # self.twister_control.assign_encoder(15, xfade, xfade.min, xfade.max, 'B')
 
         self.mft_input = MFTInput(self, self.twister_control)
 
@@ -94,41 +98,94 @@ class Set(EbiagiComponent):
                 module.deactivate()
 
         if len(self.modules):
-            self.activate_module(0)
+            self.assign_module(0,'A')
             self.loading = False
             self.message('Loaded Ebiagi Set')
 
-    def activate_module(self, index):
+    # def activate_module(self, index):
+    #     if self.modules[index]:
+    #         if self.modules[index] != self.active_module:
+
+    #             for ipt in self.midi_inputs + self.audio_inputs:
+    #                 ipt.clear()
+
+    #             self.smart_loop = None
+
+    #             if self.active_crossfade:
+    #                 self.modules[index].activate()
+
+    #                 self.crossfade_module = self.active_module
+    #                 self.crossfade_module.setCrossfadeA()
+
+    #                 self.active_module = self.modules[index]
+    #                 self.active_module.setCrossfadeB()
+
+    #             else:
+    #                 if self.active_module:
+    #                     self.stop_all_loops()
+    #                     self.active_module.deactivate()
+    #                 self.modules[index].activate()
+    #                 self.active_module = self.modules[index]
+    #                 self.select_instrument(0)
+
+    #         else:
+    #             self.message('Module already active')
+    #     else:
+    #         self.log('Module index out of bounds')
+
+    def assign_module(self, index, slot):
+
+        if self.active_modules[slot] != None:
+            self.message('Clear slot before assigning module')
+            return
+
         if self.modules[index]:
-            if self.modules[index] != self.active_module:
-
-                for ipt in self.midi_inputs + self.audio_inputs:
-                    ipt.clear()
-
-                self.smart_loop = None
-
-                if self.active_crossfade:
-                    self.modules[index].activate()
-
-                    self.crossfade_module = self.active_module
-                    self.crossfade_module.setCrossfadeA()
-
-                    self.active_module = self.modules[index]
-                    self.active_module.setCrossfadeB()
-
+            if self.modules[index] != self.active_modules['A'] and self.modules[index] != self.active_modules['B']:
+                self.modules[index].activate()
+                self.active_modules[slot] = self.modules[index]
+                volume = self.active_modules[slot]._track.mixer_device.volume
+                if slot == 'A':
+                    self.twister_control.assign_encoder(13, volume, volume.min, 0.8, 'R')
                 else:
-                    if self.active_module:
-                        self.stop_all_loops()
-                        self.active_module.deactivate()
-                    self.modules[index].activate()
-                    self.active_module = self.modules[index]
-                    self.select_instrument(0)
-
+                    self.twister_control.assign_encoder(14, volume, volume.min, 0.8, 'R')
+                self.target_module(slot)
             else:
                 self.message('Module already active')
         else:
             self.log('Module index out of bounds')
 
+    def target_module(self, slot):
+        if self.targetted_module is not self.active_modules[slot]:
+
+            for ipt in self.midi_inputs + self.audio_inputs:
+                ipt.clear()
+            
+            self.smart_loop = None
+
+            if self.targetted_module is not None:
+                self.targetted_module.fold()
+
+            self.targetted_module = self.active_modules[slot]
+            self.targetted_module.unfold()
+            self.select_instrument(0)
+            self.deselect_instrument(0)
+
+    def clear_module(self, slot):
+        #if volume is 0 return error
+        if self.active_modules[slot]._track.mixer_device.volume.value != self.active_modules[slot]._track.mixer_device.volume.min:
+            self.message('Set volume to 0 before clearing')
+            return
+        if self.active_modules[slot] is self.targetted_module:
+            if slot == 'A':
+                self.target_module('B')
+            else:
+                self.target_module('A')
+        self.active_modules[slot].deactivate()
+        self.active_modules[slot] = None
+        if slot == 'A':
+            self.twister_control.clear_encoder(13)
+        else:
+            self.twister_control.clear_encoder(14)
 
     def toggle_input(self, key):
         for ipt in self.midi_inputs + self.audio_inputs:
@@ -143,7 +200,7 @@ class Set(EbiagiComponent):
 
     def select_instrument(self, index, instrument=None):
         if not instrument:
-            instrument = self.active_module.instruments[index]
+            instrument = self.targetted_module.instruments[index]
         self.held_instruments.add(instrument)
         if len(self.held_instruments) == 1:
             instrument.select()
@@ -152,49 +209,49 @@ class Set(EbiagiComponent):
 
     def deselect_instrument(self, index, instrument=None):
         if not instrument:
-            instrument = self.active_module.instruments[index]       
+            instrument = self.targetted_module.instruments[index]       
         if instrument in self.held_instruments: 
             self.held_instruments.remove(instrument)
         #instrument.deselect()
 
     def stop_instrument(self, index, instrument=None):
         if not instrument:
-            instrument = self.active_module.instruments[index]       
+            instrument = self.targetted_module.instruments[index]       
         instrument.stop()
 
     def select_loop(self, key):
-        self.active_module.loops[key].select()
+        self.targetted_module.loops[key].select()
 
     def deselect_loop(self, key):
-        self.active_module.loops[key].deselect()
+        self.targetted_module.loops[key].deselect()
 
     def stop_loop(self, key):
-        self.active_module.loops[key].stop()
+        self.targetted_module.loops[key].stop()
 
     def stop_all_loops(self):
-        for loop in self.active_module.loops.values():
+        for loop in self.targetted_module.loops.values():
             loop.stop()
 
     def clear_loop(self, key):
-        self.active_module.loops[key].clear()
+        self.targetted_module.loops[key].clear()
 
     def quantize_loop(self, key):
-        self.active_module.loops[key].quantize()
+        self.targetted_module.loops[key].quantize()
 
     def mute_all_loops(self):
         if self._song.session_record:
             return
-        instrs = self.held_instruments if len(self.held_instruments) > 0 else self.active_module.instruments
+        instrs = self.held_instruments if len(self.held_instruments) > 0 else self.targetted_module.instruments
         for instr in instrs:
             instr.mute_loops()
 
     def unmute_all_loops(self):
         # self.global_loop_track.arm = 1
-        for instr in self.active_module.instruments:
+        for instr in self.targetted_module.instruments:
             instr.unmute_loops()
 
     def select_snap(self, index):
-        self.snap_control.select_snap(self.active_module.snaps[index])
+        self.snap_control.select_snap(self.targetted_module.snaps[index])
 
     def deselect_snap(self, index):       
         #do nothing
@@ -203,10 +260,10 @@ class Set(EbiagiComponent):
     def assign_snap(self, index):
         param = self._song.view.selected_parameter
         track = self._song.view.selected_track
-        self.active_module.assign_snap(index, param, track)
+        self.targetted_module.assign_snap(index, param, track)
 
     def clear_snap(self, index):
-        self.active_module.clear_snap(index)
+        self.targetted_module.clear_snap(index)
 
     def recall_snap(self, beats):
         self.snap_control.ramp(beats)
@@ -244,7 +301,7 @@ class Set(EbiagiComponent):
         else:
             woot = self.woot
             for key in qwerty_order:
-                loop = self.active_module.loops[key]
+                loop = self.targetted_module.loops[key]
                 if loop and not loop.has_clips():
                     for clip_slot in loop._clip_slots:
                         if woot.has_instrument(clip_slot._instrument) and clip_slot.will_record_on_start() and not clip_slot._track.playing_slot_index > 0:
@@ -258,7 +315,7 @@ class Set(EbiagiComponent):
             self.smart_loop = None
 
     def clear_arrangement_clip_envelopes(self):
-        for instr in self.active_module.instruments:
+        for instr in self.targetted_module.instruments:
             instr.clear_arrangement_envelopes()
 
     ## TODO: implement this in a more extensible/less brittle way
@@ -296,7 +353,7 @@ class Set(EbiagiComponent):
                 self.crossfade_module.deactivate()
                 self.crossfade_module.clearCrossfade()
                 self.crossfade_module = None
-            self.active_module.clearCrossfade()
+            self.targetted_module.clearCrossfade()
         self.setCrossfadeA()
         self.active_crossfade = not self.active_crossfade
 

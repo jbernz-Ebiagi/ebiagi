@@ -63,8 +63,8 @@ class Instrument(EbiagiComponent):
                     clip_slot.fire()
             for track in [self._track] + self._ex_tracks:
                 self.set_default_monitoring_state(track)
-        if self._input:
-            self._input.add_instrument(self)
+        # if self._input:
+        #     self._input.add_instrument(self)
         # Toggle values to fix cc mapper bug
         def wiggleInstr():
             i = 1

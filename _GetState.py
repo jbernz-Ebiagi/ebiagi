@@ -1,6 +1,6 @@
 def get_state(Set):
     if Set and not Set.loading:
-
+        active_modules = {} 
         modules = []
         loops = {}
         clips = []
@@ -22,24 +22,24 @@ def get_state(Set):
 
         for module in Set.modules:
             color = color_name(module._track.color_index)
-            brightness = 1 if module is Set.active_module else 0
+            brightness = 1 if module is Set.targetted_module else 0
             modules.append({
                 'index': Set.modules.index(module),
                 'color': color, 
                 'brightness': brightness,
             })
 
-        for instrument in Set.active_module.instruments:
+        for instrument in Set.targetted_module.instruments:
             color = color_name(instrument._track.color_index)
             brightness = 1 if instrument.is_armed() else 0
             instr.append({
-                'index': Set.active_module.instruments.index(instrument),
+                'index': Set.targetted_module.instruments.index(instrument),
                 'color': color, 
                 'brightness': brightness,
             })
 
-        for key in Set.active_module.loops:
-            loop = Set.active_module.loops[key]
+        for key in Set.targetted_module.loops:
+            loop = Set.targetted_module.loops[key]
             color = 'red' if loop.can_record() and not loop.has_clips() or loop.is_recording() else color_name(loop.color())
             brightness = 1 if loop.is_playing() else 0
             loops[key] = {
@@ -48,11 +48,11 @@ def get_state(Set):
             }   
 
 
-        for snap in Set.active_module.snaps:
+        for snap in Set.targetted_module.snaps:
             color = 'blue' if snap is Set.snap_control.selected_snap else 'white'
             brightness = 1 if len(snap.snap_params) > 0 else 0
             snaps.append({
-                'index': Set.active_module.snaps.index(snap),
+                'index': Set.targetted_module.snaps.index(snap),
                 'color': color, 
                 'brightness': brightness,
             })
@@ -78,6 +78,15 @@ def get_state(Set):
             'device_on': Set.woot._track.devices[0].parameters[7].value
         } if Set.woot else {}
 
+        if Set.active_modules['A'] != None:
+            active_modules['A'] = {
+                'color': color_name(Set.active_modules['A']._track.color_index)
+            }
+        if Set.active_modules['B'] != None:
+            active_modules['B'] = {
+                'color': color_name(Set.active_modules['B']._track.color_index)
+            }
+
         return {
             'instr': instr,
             'inputs': inputs,
@@ -90,7 +99,8 @@ def get_state(Set):
             'snaps': snaps,
             'metronome': metronome,
             'smart_record': smart_record,
-            'woot_arp': woot_arp
+            'woot_arp': woot_arp,
+            'active_modules': active_modules
         }
 
     else:

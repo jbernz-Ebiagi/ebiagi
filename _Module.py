@@ -57,8 +57,8 @@ class Module(EbiagiComponent):
             instrument.activate()
         for send in self.sends:
             send.current_monitoring_state = 0
-        self._track.fold_state = 0
         self._track.mute = 0
+        self._track.solo = 1
 
     def deactivate(self):
         self.log('Deactivating %s...' % self.short_name)
@@ -68,8 +68,16 @@ class Module(EbiagiComponent):
             send.current_monitoring_state = 2
         for loop in self.loops.values():
             loop.stop()
-        self._track.fold_state = 1
+        self.fold()
         self._track.mute = 1
+        self._track.solo = 0
+        self._track.mixer_device.volume.value = self._track.mixer_device.volume.min      
+
+    def fold(self):
+        self._track.fold_state = 1
+
+    def unfold(self):
+        self._track.fold_state = 0
 
     def assign_snap(self, index, param, track):
         # self.snaps[index] = Snap([], self, self._set)
