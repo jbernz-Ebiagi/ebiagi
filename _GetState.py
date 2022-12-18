@@ -1,3 +1,5 @@
+import math
+
 def get_state(Set):
     if Set and not Set.loading:
         active_modules = {} 
@@ -11,6 +13,8 @@ def get_state(Set):
         globalLoop = None
         snaps = []
         metronome = Set._song.metronome > 0
+        beat = 0
+        measure = 0
 
         for ipt in Set.midi_inputs + Set.audio_inputs:       
             if ipt.selected_instrument != None:
@@ -90,6 +94,9 @@ def get_state(Set):
             active_modules['B'] = {
                 'color': color_name(Set.active_modules['B']._track.color_index)
             }
+        if Set._song.is_playing:
+            beat = round(Set._song.current_song_time % Set._song.signature_numerator + 1, 2)
+            measure = math.floor(Set._song.current_song_time / Set._song.signature_numerator + 1)
 
         return {
             'instr': instr,
@@ -104,7 +111,9 @@ def get_state(Set):
             'metronome': metronome,
             'smart_record': smart_record,
             'woot_arp': woot_arp,
-            'active_modules': active_modules
+            'active_modules': active_modules,
+            'beat': beat,
+            'measure': measure
         }
 
     else:

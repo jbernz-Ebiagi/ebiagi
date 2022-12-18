@@ -62,9 +62,9 @@ def parse_clip_name(name):
         return None
 
 def parse_clip_commands(name):
-    if '} ' in name:
-        name = name.split('} ')[1]
-    return name.split(" ")
+    words = name.split(" ")
+    commands = filter(lambda word: 'PLAY' in word or 'SNAP' in word or 'HOLD' in word or 'MUTE' in word or 'STOP' in word, words)
+    return list(commands)
 
 def parse_clip_command_param(command):
     match = re.search('\(([^)]+)', command)

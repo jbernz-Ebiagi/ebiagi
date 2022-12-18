@@ -53,7 +53,7 @@ class Input(EbiagiComponent):
 
 ####
 
-NUM_DYNAMIC_ENCODERS = 12
+NUM_DYNAMIC_ENCODERS = 15
 
 color_letters = [
 	'B', #blue
@@ -122,6 +122,15 @@ class MFTInput(EbiagiComponent):
         while i < NUM_DYNAMIC_ENCODERS:
             param = instrument.get_instrument_device().parameters[i+1]
             self.twister_control.assign_encoder(i, param, param.min, param.max, get_manual_color(param.name, instrument))
+            i += 1
+
+    def set_global_instrument(self, instrument):
+        i = 0
+        self.log('whoopie')
+        while i < 13:
+            self.log('whoopie')
+            param = instrument.get_instrument_device().parameters[i+1]
+            self.twister_control.assign_encoder(i+16, param, param.min, param.max, get_manual_color(param.name, instrument))
             i += 1
 
     def clear(self):

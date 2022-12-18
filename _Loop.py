@@ -48,8 +48,13 @@ class Loop(EbiagiComponent):
             for clip_slot in self._clip_slots:
                 #don't record if there are already clips
                 if not (clip_slot.will_record_on_start() and has_clip):
-                    clip_slot.fire()
-                    clip_slot.run_select_commands()
+                    if len(clip_slot._clip_commands) > 0:
+                        # self.log(len(clip_slot._clip_commands))
+                        clip_slot.run_select_commands()
+                    # elif not self.is_playing():
+                    #     clip_slot.fire()
+                    else:
+                        clip_slot.fire()
 
     def deselect(self):
         for clip_slot in self._clip_slots:
@@ -154,7 +159,10 @@ class ClipSlot(EbiagiComponent):
 
     def stop(self):
         if self._slot.has_clip:
-            self._slot.stop()
+            if list(self._track.clip_slots)[self._set.get_scene_index('STOPCLIP')].has_clip:
+                list(self._track.clip_slots)[self._set.get_scene_index('STOPCLIP')].fire()
+            else:
+                self._slot.stop()
 
     def is_clearable(self):
         return self._slot.has_clip and 'CAN_CLEAR' in self._slot.clip.name or self._slot.is_recording
@@ -212,6 +220,9 @@ class ClipSlot(EbiagiComponent):
 
             for command in self._clip_commands:
 
+                self.log(command)
+                self.log(len(command))
+
                 if 'SELECT' in command:
                     self._set.select_instrument(None, self._instrument)
                     self._set.deselect_instrument(None, self._instrument)
@@ -258,6 +269,9 @@ class ClipSlot(EbiagiComponent):
 
                 if 'MUTE' in command:
                     self._instrument.mute_loops()
+
+                if 'HOLD' in command:
+                    self._slot.fire()
 
     
     def run_deselect_commands(self):

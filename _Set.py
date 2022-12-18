@@ -45,13 +45,7 @@ class Set(EbiagiComponent):
         self.twister_control = twister_control
         
         tempo = self.song().master_track.mixer_device.song_tempo
-        self.twister_control.assign_encoder(15, tempo, 126, 144, 'G')
-
-        # volume = self.song().master_track.mixer_device.volume
-        # self.twister_control.assign_encoder(14, volume, volume.min, volume.max, 'R')
-
-        # xfade = self.song().master_track.mixer_device.crossfader
-        # self.twister_control.assign_encoder(15, xfade, xfade.min, xfade.max, 'B')
+        self.twister_control.assign_encoder(31, tempo, 126, 144, 'G')
 
         self.mft_input = MFTInput(self, self.twister_control)
 
@@ -72,6 +66,10 @@ class Set(EbiagiComponent):
             #Add Global Instrument
             if is_global_instrument(track.name):
                 instr = Instrument(track, self)
+                self.log(instr.short_name)
+                if instr.short_name == 'SFX':
+                    self.log('wee')
+                    self.mft_input.set_global_instrument(instr)
                 self.global_instruments.append(instr)
 
             #Add Snap Control
@@ -80,7 +78,7 @@ class Set(EbiagiComponent):
                 m += 1
                 self.snap_control = sc
                 if self.twister_control:
-                    self.twister_control.assign_encoder(12, sc._knob, sc._knob.min, sc._knob.max, 'B')
+                    self.twister_control.assign_encoder(15, sc._knob, sc._knob.min, sc._knob.max, 'B')
 
             #Add global loop
             if is_global_loop_track(track.name):
@@ -99,39 +97,9 @@ class Set(EbiagiComponent):
 
         if len(self.modules):
             self.assign_module(0,'A')
+            self.active_modules['A']._track.mixer_device.volume.value = 0.8
             self.loading = False
             self.message('Loaded Ebiagi Set')
-
-    # def activate_module(self, index):
-    #     if self.modules[index]:
-    #         if self.modules[index] != self.active_module:
-
-    #             for ipt in self.midi_inputs + self.audio_inputs:
-    #                 ipt.clear()
-
-    #             self.smart_loop = None
-
-    #             if self.active_crossfade:
-    #                 self.modules[index].activate()
-
-    #                 self.crossfade_module = self.active_module
-    #                 self.crossfade_module.setCrossfadeA()
-
-    #                 self.active_module = self.modules[index]
-    #                 self.active_module.setCrossfadeB()
-
-    #             else:
-    #                 if self.active_module:
-    #                     self.stop_all_loops()
-    #                     self.active_module.deactivate()
-    #                 self.modules[index].activate()
-    #                 self.active_module = self.modules[index]
-    #                 self.select_instrument(0)
-
-    #         else:
-    #             self.message('Module already active')
-    #     else:
-    #         self.log('Module index out of bounds')
 
     def assign_module(self, index, slot):
 
@@ -145,9 +113,9 @@ class Set(EbiagiComponent):
                 self.active_modules[slot] = self.modules[index]
                 volume = self.active_modules[slot]._track.mixer_device.volume
                 if slot == 'A':
-                    self.twister_control.assign_encoder(13, volume, volume.min, 0.8, 'R')
+                    self.twister_control.assign_encoder(29, volume, volume.min, 0.8, 'R')
                 else:
-                    self.twister_control.assign_encoder(14, volume, volume.min, 0.8, 'R')
+                    self.twister_control.assign_encoder(30, volume, volume.min, 0.8, 'R')
                 self.target_module(slot)
             else:
                 self.message('Module already active')

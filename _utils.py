@@ -12,7 +12,7 @@ def catch_exception(f):
     return func
 
 def clear_log_file():
-    open('/Users/justin/Library/Preferences/Ableton/Live 11.0.1/Log.txt', 'w').close()
+    open('/Users/justin/Library/Preferences/Ableton/Live 11.2.5/Log.txt', 'w').close()
 
 def set_input_routing(track, routing_name):
     for routing in track.available_input_routing_types:
