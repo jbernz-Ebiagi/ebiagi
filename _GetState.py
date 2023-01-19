@@ -15,6 +15,10 @@ def get_state(Set):
         metronome = Set._song.metronome > 0
         beat = 0
         measure = 0
+        module_name = None
+        knobs = []
+
+        module_name = Set.targetted_module._track.name
 
         for ipt in Set.midi_inputs + Set.audio_inputs:       
             if ipt.selected_instrument != None:
@@ -113,7 +117,9 @@ def get_state(Set):
             'woot_arp': woot_arp,
             'active_modules': active_modules,
             'beat': beat,
-            'measure': measure
+            'measure': measure,
+            'module_name': module_name,
+            'knobs': knobs
         }
 
     else:

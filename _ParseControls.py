@@ -17,8 +17,8 @@ MIDI_MSG_TYPES = {'cc': MIDI_CC_TYPE, 'note': MIDI_NOTE_TYPE}
 
 def handle_xcontrol_and_binding_settings(identifier, parent, logger):
     """ Handles xcontrol and binding settings for self or for the given XT script. """
-    s_path = path_join(expanduser('~'), 'nativeKONTROL', 'ClyphX_Pro')
-    settings = _parse_config_file(s_path, 'X-Controls.txt', logger)
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    settings = _parse_config_file(dir_path, 'X-Controls.txt', logger)
     if settings:
         parsed_settings = parse_xcontrol_settings(settings, identifier, logger, parent)
         if parsed_settings:
@@ -45,7 +45,7 @@ def _parse_config_file(file_path, file_name, logger):
             if isinstance(value, list):
                 value = (' ').join(value)
             file_data[key] = value.replace('\n', '')
-            #logger(' -> %s: %s' % (key, file_data[key]))
+            # logger(' -> %s: %s' % (key, file_data[key]))
 
     return file_data
 

@@ -62,7 +62,6 @@ class Socket(EbiagiComponent):
             except Exception as e:
                 self.log("Error: " + str(e.args))
 
-
     def disconnect(self):
         super(Socket, self).disconnect()
         self._socket.close()

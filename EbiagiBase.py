@@ -35,10 +35,6 @@ class EbiagiBase(CompoundComponent, Subject):
 
         self.create_actions()
         self.rebuild_set()
-
-        # scripts = get_control_surfaces()
-        # for s in scripts:
-        #     if s.__class__.__name__ == 'twister':
                 
 
     def add_global_action(self, name, function):
@@ -246,6 +242,10 @@ class EbiagiBase(CompoundComponent, Subject):
     @catch_exception
     def get_state(self):
         return get_state(self.set)
+
+    @catch_exception
+    def get_ui(self):
+        return get_ui(self.set)
 
     def log(self, message):
         logger.info(message)
