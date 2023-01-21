@@ -66,29 +66,15 @@ class Instrument(EbiagiComponent):
                     clip_slot.fire()
             for track in [self._track] + self._ex_tracks:
                 self.set_default_monitoring_state(track)
-        # if self._input:
-        #     self._input.add_instrument(self)
-        # Toggle values to fix cc mapper bug
-        def wiggleInstr():
-            i = 1
-            while i < len(self.get_instrument_device().parameters):
-                if self.get_instrument_device().parameters[i].value != self.get_instrument_device().parameters[i].max:
-                    self.get_instrument_device().parameters[i].value = self.get_instrument_device().parameters[i].value + 1
-                    self.get_instrument_device().parameters[i].value = self.get_instrument_device().parameters[i].value - 1
-                else:
-                    self.get_instrument_device().parameters[i].value = self.get_instrument_device().parameters[i].value - 1
-                    self.get_instrument_device().parameters[i].value = self.get_instrument_device().parameters[i].value + 1   
-                i = i+1
-        if 'MFX' in self.short_name:
-            self.wiggleTimer = Live.Base.Timer(callback=wiggleInstr, interval=1000, repeat=False)
-            self.wiggleTimer.start()
+            self.pair_macros(self._module.instruments)
 
     def deactivate(self):
         if len(self._track.devices) > 0:
             if(self.get_instrument_device()):
                 self.get_instrument_device().parameters[0].value = 0
-            # for pm in self.paired_macros:
-            #     pm['link'].clear()
+            for pm in self.paired_macros:
+                pm['link'].clear()
+            self.paired_macros = []
             for track in [self._track] + self._ex_tracks:
                 if track.can_be_armed:
                     track.arm = 0 
