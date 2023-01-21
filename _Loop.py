@@ -18,7 +18,7 @@ class Loop(EbiagiComponent):
 
         self.short_name = get_short_name(scene.name)
 
-        self.log('Initializing Loop %s %s...' % (get_short_name(track.name), self.short_name))
+        # self.log('Initializing Loop %s %s...' % (get_short_name(track.name), self.short_name))
 
         i = list(self._song.tracks).index(track) + 1
         while not is_module(self._song.tracks[i].name) and self._song.tracks[i].is_grouped:
@@ -49,7 +49,6 @@ class Loop(EbiagiComponent):
                 #don't record if there are already clips
                 if not (clip_slot.will_record_on_start() and has_clip):
                     if len(clip_slot._clip_commands) > 0:
-                        # self.log(len(clip_slot._clip_commands))
                         clip_slot.run_select_commands()
                     # elif not self.is_playing():
                     #     clip_slot.fire()
@@ -61,7 +60,6 @@ class Loop(EbiagiComponent):
             clip_slot.run_deselect_commands()
 
     def stop(self):
-        self.log(self.short_name)
         if self.is_recording():
             self._finish_record()
         for clip_slot in self._clip_slots:
@@ -185,10 +183,8 @@ class ClipSlot(EbiagiComponent):
         return True
 
     def loop_clip(self, clip):
-        self.log('wee')
         if not clip.is_recording:
             def woo():
-                self.log('woo')
                 clip.loop_end = clip.length
                 clip.loop_start = clip.length - 4.0
                 clip.start_marker = clip.loop_start
@@ -219,9 +215,6 @@ class ClipSlot(EbiagiComponent):
             self._held = True
 
             for command in self._clip_commands:
-
-                self.log(command)
-                self.log(len(command))
 
                 if 'SELECT' in command:
                     self._set.select_instrument(None, self._instrument)
@@ -260,7 +253,6 @@ class ClipSlot(EbiagiComponent):
                     clip_name_to_play = parse_clip_command_param(command)
                     for clip_slot in self._track.clip_slots:
                         if clip_slot.has_clip:
-                            self.log(parse_clip_name(clip_slot.clip.name))
                             if parse_clip_name(clip_slot.clip.name) == clip_name_to_play:
                                 clip_slot.fire()
 

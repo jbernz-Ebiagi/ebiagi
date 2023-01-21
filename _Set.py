@@ -66,9 +66,7 @@ class Set(EbiagiComponent):
             #Add Global Instrument
             if is_global_instrument(track.name):
                 instr = Instrument(track, self)
-                self.log(instr.short_name)
                 if instr.short_name == 'SFX':
-                    self.log('wee')
                     self.mft_input.set_global_instrument(instr)
                 self.global_instruments.append(instr)
 

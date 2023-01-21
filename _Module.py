@@ -40,6 +40,9 @@ class Module(EbiagiComponent):
 
             i += 1
 
+        for instrument in self.instruments:
+            instrument.pair_macros(self.instruments)
+
         for scene in self._song.scenes:
             if is_loop(scene.name):
                 loop = Loop(track, scene, Set, self.instruments)
@@ -80,9 +83,6 @@ class Module(EbiagiComponent):
         self._track.fold_state = 0
 
     def assign_snap(self, index, param, track):
-        # self.snaps[index] = Snap([], self, self._set)
-        self.log(param)
-        self.log(self.snaps[index].get_data())
         for instrument in self.instruments:
             if instrument._track == track:
                 if(param):
@@ -101,7 +101,6 @@ class Module(EbiagiComponent):
                         i += 1
                     self.message('Saved snap from %s to snap %s' % (instrument.short_name, str(index+1)))
                 self._save_snaps()
-                self.log(self.snaps[index].get_data())
 
 
     def clear_snap(self, index):
@@ -115,7 +114,6 @@ class Module(EbiagiComponent):
             data.append(snap.get_data())
         self._track.set_data('snaps', data)
         self._snap_data = data
-        self.log('saved snaps')
 
     def setCrossfadeA(self):
         self._track.mixer_device.crossfade_assign = 0

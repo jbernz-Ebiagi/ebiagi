@@ -45,6 +45,16 @@ def is_light_track(name):
 def is_loop(name):
     return name.startswith('loop[')
 
+#Paired macro names follow the format: P[track_short_name][macro_name]
+def is_paired_macro(name):
+    return name.startswith('P[')
+
+def get_paired_macro_params(name):
+    res = re.findall(r'\[(.*?)\]', name)
+    if res:
+        return res
+    else:
+        return ''
 
 def get_short_name(name):
     res = re.search(r"\[([A-Za-z0-9_ ,-.]+)\]", name)

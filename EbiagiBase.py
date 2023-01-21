@@ -93,19 +93,15 @@ class EbiagiBase(CompoundComponent, Subject):
     def assign_module(self, action_def, args):
         index = int(args.split(',')[0])
         slot = args.split(',')[1]
-        self.log(index)
-        self.log(slot)
         self.set.assign_module(index, slot)
 
     @catch_exception
     def clear_module(self, action_def, args):
-        self.log(args)
         slot = args[-1]
         self.set.clear_module(slot)
 
     @catch_exception
     def target_module(self, action_def, args):
-        self.log(args)
         slot = args[-1]
         self.set.target_module(slot)
 

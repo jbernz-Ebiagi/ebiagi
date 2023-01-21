@@ -3,6 +3,8 @@ from threading import Timer
 from ._EbiagiComponent import EbiagiComponent
 from ._naming_conventions import *
 from ._utils import set_input_routing, set_output_routing, set_output_light_channel
+from _Framework.ControlSurface import get_control_surfaces
+import math
 import Live
 
 class Instrument(EbiagiComponent):
@@ -19,7 +21,7 @@ class Instrument(EbiagiComponent):
 
         self.short_name = get_short_name(track.name.split('.')[0])
 
-        self.log('Initializing Instrument %s...' % self.short_name)
+        # self.log('Initializing Instrument %s...' % self.short_name)
 
         if len(track.name.split('.')) > 1: 
             input_name = get_short_name(track.name.split('.')[1])
@@ -32,12 +34,13 @@ class Instrument(EbiagiComponent):
         i = list(self._song.tracks).index(track) + 1
         while i < len(self._song.tracks) and is_ex_instrument_track(self._song.tracks[i].name):
             self._ex_tracks.append(self._song.tracks[i])
-            self.log(self._song.tracks[i].name)
             i += 1
 
         #Assign Routing
         for track in [self._track] + self._ex_tracks:
             self._assign_routing(track)
+
+        self.paired_macros = []
 
     def _assign_routing(self, track):
         if is_source_track(track.name):
@@ -84,6 +87,8 @@ class Instrument(EbiagiComponent):
         if len(self._track.devices) > 0:
             if(self.get_instrument_device()):
                 self.get_instrument_device().parameters[0].value = 0
+            # for pm in self.paired_macros:
+            #     pm['link'].clear()
             for track in [self._track] + self._ex_tracks:
                 if track.can_be_armed:
                     track.arm = 0 
@@ -100,6 +105,41 @@ class Instrument(EbiagiComponent):
         for device in self._track.devices:
             if device.can_have_chains:
                 return device
+
+    def pair_macros(self, instruments):
+        i = 1
+        params = self.get_instrument_device().parameters
+        #for all macros
+        while i < len(params):
+            param_A = params[i]
+            ##if it is a paired macro
+            if is_paired_macro(param_A.name):
+                #for all instruments in list passed in
+                for instrument in instruments:
+                    #for all tracks for that instrument
+                    for track in [instrument._track] + instrument._ex_tracks:
+                        #if the short names match
+                        if get_short_name(track.name) == get_paired_macro_params(param_A.name)[0]:
+                            for device in track.devices:
+                                if device.can_have_chains:
+                                    for param_B in device.parameters:
+                                        if param_B.name == get_paired_macro_params(param_A.name)[1]:
+                                            for s in get_control_surfaces():
+                                                if s.__class__.__name__ == 'ParameterMidiLink':
+                                                    self.log('link params')
+                                                    self.paired_macros.append(
+                                                        {
+                                                            'linking_param': param_A,
+                                                            'link': s.link_parameters(param_A, param_B),
+                                                            'color': track.color_index
+                                                        })
+            i += 1
+
+    def get_paired_macro(self, param):
+        for pm in self.paired_macros:
+            if pm['linking_param'] == param:
+                return pm
+        return False
 
     def arm(self):
         for track in [self._track] + self._ex_tracks:
@@ -171,9 +211,6 @@ class Instrument(EbiagiComponent):
                 track.current_monitoring_state = 0
                 track.arm = 0
         else:
-            self.log(track.name)
-            self.log(track.can_be_armed)
-            self.log(track.is_foldable)
             track.current_monitoring_state = 1
             if track.can_be_armed:
                 track.arm = 0

@@ -10,9 +10,6 @@ class Snap(EbiagiComponent):
         self.snap_params = []
         self.ramping_params = []
 
-        self.log('load snap')
-        self.log(data)
-
         for d in data:
             for instrument in Module.instruments:
                 if d['instr_name'] == get_short_name(instrument._track.name):
@@ -40,8 +37,6 @@ class Snap(EbiagiComponent):
         data = []
         for snap_param in self.snap_params:
             data.append(snap_param.get_data())
-        self.log('get snap data')
-        self.log(data)
         return data
 
 

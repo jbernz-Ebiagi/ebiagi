@@ -121,14 +121,15 @@ class MFTInput(EbiagiComponent):
         i = 0
         while i < NUM_DYNAMIC_ENCODERS:
             param = instrument.get_instrument_device().parameters[i+1]
-            self.twister_control.assign_encoder(i, param, param.min, param.max, get_manual_color(param.name, instrument))
+            color = get_manual_color(param.name, instrument)
+            if instrument.get_paired_macro(param):
+                color = color_index_map[instrument.get_paired_macro(param)['color']]
+            self.twister_control.assign_encoder(i, param, param.min, param.max, color)
             i += 1
 
     def set_global_instrument(self, instrument):
         i = 0
-        self.log('whoopie')
         while i < 13:
-            self.log('whoopie')
             param = instrument.get_instrument_device().parameters[i+1]
             self.twister_control.assign_encoder(i+16, param, param.min, param.max, get_manual_color(param.name, instrument))
             i += 1
