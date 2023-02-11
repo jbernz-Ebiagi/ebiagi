@@ -12,4 +12,5 @@ class EbiagiComponent(ControlSurfaceComponent):
     def message(self, message):
         self.canonical_parent.show_message(message)
 
-    
+    def midi_action(self, action, priority=False):
+        self.canonical_parent.trigger_midi_action(action, priority)

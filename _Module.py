@@ -61,7 +61,7 @@ class Module(EbiagiComponent):
         for send in self.sends:
             send.current_monitoring_state = 0
         self._track.mute = 0
-        self._track.solo = 1
+        # self._track.solo = 1
 
     def deactivate(self):
         self.log('Deactivating %s...' % self.short_name)
@@ -73,7 +73,7 @@ class Module(EbiagiComponent):
             loop.stop()
         self.fold()
         self._track.mute = 1
-        self._track.solo = 0
+        # self._track.solo = 0
         self._track.mixer_device.volume.value = self._track.mixer_device.volume.min      
 
     def fold(self):
@@ -129,3 +129,8 @@ class Module(EbiagiComponent):
         self._track.mixer_device.crossfade_assign = 1
         for instr in self.instruments:
             instr._track.mixer_device.crossfade_assign = 1
+
+    def disconnect(self):
+        super(Module, self).disconnect()
+        for instrument in self.instruments:
+            instrument.disconnect()

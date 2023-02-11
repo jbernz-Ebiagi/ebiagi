@@ -2,6 +2,7 @@
 import Live, sys
 import logging
 logger = logging.getLogger(__name__)
+import threading
 from _Framework.ControlSurface import get_control_surfaces
 from _Framework.CompoundComponent import CompoundComponent
 from _Framework.SubjectSlot import Subject
@@ -10,7 +11,9 @@ from ._Set import Set
 from ._Socket import Socket
 from ._GetState import get_state
 from ._ParseControls import handle_xcontrol_and_binding_settings
-
+from _Framework.ButtonElement import ButtonElement
+from _Framework.InputControlElement import MIDI_NOTE_TYPE, MIDI_NOTE_ON_STATUS
+from collections import deque
 
 #This file is the entry point to the control surface script, and defines/routes the available actions
 class EbiagiBase(CompoundComponent, Subject):
@@ -28,17 +31,47 @@ class EbiagiBase(CompoundComponent, Subject):
         self.log('reading xcontrols...')
         handle_xcontrol_and_binding_settings('Main', self, self.log)
 
+        self._create_midi_buttons()
+        self.canonical_parent.trigger_midi_action = self.trigger_midi_action
+
         self.twister_control = None
         for s in get_control_surfaces():
             if s.__class__.__name__ == 'twister':
                 self.twister_control = s
 
         self.create_actions()
+        # self._tasks.add(self.rebuild_set)
         self.rebuild_set()
+
+        self.global_button_args = ""
                 
+    def _create_midi_buttons(self):
+        self.midi_actions = deque()
+        self.midi_buttons = [None]*64
+        self.current_button = 0
+        i = 0
+        while i < 64:
+            self.midi_buttons[i] = ButtonElement(True, MIDI_NOTE_TYPE, 15, i, name="global_button")
+            self.midi_buttons[i].add_value_listener(self._on_midi_button_trigger)
+            i+=1
+    
+    def trigger_midi_action(self, action, priority):
+        if priority:
+            self.midi_actions.append(action)
+        else:
+            self.midi_actions.appendleft(action)
+        self.canonical_parent._send_midi((MIDI_NOTE_ON_STATUS+15, self.current_button, 127))
+        self.current_button +=1
+        if self.current_button >= 64:
+            self.current_button = 0
+
+    def _on_midi_button_trigger(self, value):
+        action = self.midi_actions.pop()
+        self.log(len(self.midi_actions))
+        action()
 
     def add_global_action(self, name, function):
-        self.actions[name] = function    \
+        self.actions[name] = function
 
     @catch_exception
     def create_actions(self):
@@ -87,6 +120,8 @@ class EbiagiBase(CompoundComponent, Subject):
     @catch_exception
     def rebuild_set(self, action_def='', args=''):
         self.twister_control.rebuild()
+        if self.set:
+            self.set.disconnect()
         self.set = Set(self.twister_control)
 
     @catch_exception

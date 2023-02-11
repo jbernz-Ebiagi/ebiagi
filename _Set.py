@@ -330,3 +330,8 @@ class Set(EbiagiComponent):
             if name == scene.name:
                 return i
             i += 1
+
+    def disconnect(self):
+        super(Set, self).disconnect()
+        for module in self.modules:
+            module.disconnect()

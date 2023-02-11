@@ -31,6 +31,7 @@ class Input(EbiagiComponent):
         for i in self._instruments:
             i.disarm()
         self.selected_instrument = instrument
+        self._instruments.add(instrument)
         self.selected_instrument.arm()
 
     def has_instrument(self, instrument):

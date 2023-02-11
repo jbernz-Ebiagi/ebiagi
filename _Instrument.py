@@ -4,6 +4,8 @@ from ._EbiagiComponent import EbiagiComponent
 from ._naming_conventions import *
 from ._utils import set_input_routing, set_output_routing, set_output_light_channel
 from _Framework.ControlSurface import get_control_surfaces
+from ._BeatSelectorDevice import BeatSelectorDevice
+from ._ClipSelectorDevice import ClipSelectorDevice
 import math
 import Live
 
@@ -29,6 +31,11 @@ class Instrument(EbiagiComponent):
                 self._input = Set.get_input(input_name)
             except:
                 self.log('Unable to locate input: %s', input_name)
+
+        self.clip_selectors = []
+        self.beat_selectors = []
+        self._create_beat_selectors(self._track.devices)
+        self._create_clip_selectors(self._track.devices)
             
         #Add Ex Tracks
         i = list(self._song.tracks).index(track) + 1
@@ -41,6 +48,22 @@ class Instrument(EbiagiComponent):
             self._assign_routing(track)
 
         self.paired_macros = []
+
+    def _create_beat_selectors(self, devices):
+        for device in devices:
+            if device.name == 'BEAT_SELECTOR' and device.can_have_chains:
+                self.beat_selectors.append(BeatSelectorDevice(device, self))
+            if device.can_have_chains:
+                for chain in device.chains:
+                    self._create_beat_selectors(chain.devices)
+
+    def _create_clip_selectors(self, devices):
+        for device in devices:
+            if device.name == 'CLIP_SELECTOR' and device.can_have_chains:
+                self.clip_selectors.append(ClipSelectorDevice(device, self))
+            if device.can_have_chains:
+                for chain in device.chains:
+                    self._create_clip_selectors(chain.devices)
 
     def _assign_routing(self, track):
         if is_source_track(track.name):
@@ -66,6 +89,7 @@ class Instrument(EbiagiComponent):
                     clip_slot.fire()
             for track in [self._track] + self._ex_tracks:
                 self.set_default_monitoring_state(track)
+            # Timer(0.5, partial(self.pair_macros, self._module.instruments)).start()
             self.pair_macros(self._module.instruments)
 
     def deactivate(self):
@@ -105,14 +129,13 @@ class Instrument(EbiagiComponent):
                     #for all tracks for that instrument
                     for track in [instrument._track] + instrument._ex_tracks:
                         #if the short names match
-                        if get_short_name(track.name) == get_paired_macro_params(param_A.name)[0]:
+                        if get_paired_macro_params(param_A.name) and get_short_name(track.name) == get_paired_macro_params(param_A.name)[0]:
                             for device in track.devices:
                                 if device.can_have_chains:
                                     for param_B in device.parameters:
                                         if param_B.name == get_paired_macro_params(param_A.name)[1]:
                                             for s in get_control_surfaces():
                                                 if s.__class__.__name__ == 'ParameterMidiLink':
-                                                    self.log('link params')
                                                     self.paired_macros.append(
                                                         {
                                                             'linking_param': param_A,
@@ -128,11 +151,13 @@ class Instrument(EbiagiComponent):
         return False
 
     def arm(self):
+        self.log('arm')
         for track in [self._track] + self._ex_tracks:
             if track.can_be_armed and track.input_routing_type.display_name == self._input._track.name:
                 track.arm = 1
 
     def disarm(self):
+        self.log('disarm')
         for track in [self._track] + self._ex_tracks:
             if track.can_be_armed and track.input_routing_type.display_name == self._input._track.name:
                 track.arm = 0
@@ -200,3 +225,10 @@ class Instrument(EbiagiComponent):
             track.current_monitoring_state = 1
             if track.can_be_armed:
                 track.arm = 0
+    
+    def disconnect(self):
+        super(Instrument, self).disconnect()
+        for pm in self.paired_macros:
+            pm['link'].clear()
+        for selector in self.clip_selectors + self.beat_selectors:
+            selector.disconnect()
