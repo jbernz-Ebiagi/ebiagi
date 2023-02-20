@@ -43,10 +43,16 @@ class EbiagiBase(CompoundComponent, Subject):
                 self.midi_param_link = s
 
         self.create_actions()
-        # self._tasks.add(self.rebuild_set)
-        self.rebuild_set()
 
-        self.global_button_args = ""
+        self.delay = None
+        def delayed_build():
+            self.delay.cancel()
+            self.trigger_midi_action(self.rebuild_set, True)
+        self.delay = threading.Timer(2.0, delayed_build)
+        self.delay.start()
+
+        # self.rebuild_set()
+
                 
     def _create_midi_buttons(self):
         self.midi_actions = deque()
