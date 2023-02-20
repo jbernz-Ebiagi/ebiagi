@@ -45,6 +45,9 @@ def is_light_track(name):
 def is_loop(name):
     return name.startswith('loop[')
 
+def is_variation(name):
+    return name.startswith('variation[')
+
 #Paired macro names follow the format: P[track_short_name][macro_name]
 def is_paired_macro(name):
     return name.startswith('P[')

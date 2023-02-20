@@ -44,7 +44,7 @@ class Module(EbiagiComponent):
             instrument.pair_macros(self.instruments)
 
         for scene in self._song.scenes:
-            if is_loop(scene.name):
+            if is_loop(scene.name) or is_variation(scene.name):
                 loop = Loop(track, scene, Set, self.instruments)
                 self.loops[loop.short_name] = loop
 
