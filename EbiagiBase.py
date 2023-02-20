@@ -35,9 +35,12 @@ class EbiagiBase(CompoundComponent, Subject):
         self.canonical_parent.trigger_midi_action = self.trigger_midi_action
 
         self.twister_control = None
+        self.midi_param_link = None
         for s in get_control_surfaces():
             if s.__class__.__name__ == 'twister':
                 self.twister_control = s
+            if s.__class__.__name__ == 'ParameterMidiLink':
+                self.midi_param_link = s
 
         self.create_actions()
         # self._tasks.add(self.rebuild_set)
@@ -67,7 +70,7 @@ class EbiagiBase(CompoundComponent, Subject):
 
     def _on_midi_button_trigger(self, value):
         action = self.midi_actions.pop()
-        self.log(len(self.midi_actions))
+        # self.log(len(self.midi_actions))
         action()
 
     def add_global_action(self, name, function):
@@ -120,6 +123,7 @@ class EbiagiBase(CompoundComponent, Subject):
     @catch_exception
     def rebuild_set(self, action_def='', args=''):
         self.twister_control.rebuild()
+        self.midi_param_link.rebuild()
         if self.set:
             self.set.disconnect()
         self.set = Set(self.twister_control)
