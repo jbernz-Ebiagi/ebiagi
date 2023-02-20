@@ -195,7 +195,7 @@ class Set(EbiagiComponent):
         self.targetted_module.loops[key].stop()
 
     def stop_all_loops(self):
-        for loop in self.targetted_module.loops.values():
+        for loop in list(self.targetted_module.loops.values()) + self.targetted_module.variations:
             loop.stop()
 
     def clear_loop(self, key):

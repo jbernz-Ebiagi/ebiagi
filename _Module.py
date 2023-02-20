@@ -15,6 +15,7 @@ class Module(EbiagiComponent):
         self.instruments = []
         self.sends = []
         self.loops = {}
+        self.variations = []
 
         self.short_name = get_short_name(track.name.split('.')[0])
 
@@ -44,9 +45,12 @@ class Module(EbiagiComponent):
             instrument.pair_macros(self.instruments)
 
         for scene in self._song.scenes:
-            if is_loop(scene.name) or is_variation(scene.name):
+            if is_loop(scene.name):
                 loop = Loop(track, scene, Set, self.instruments)
                 self.loops[loop.short_name] = loop
+            if is_variation(scene.name):
+                loop = Loop(track, scene, Set, self.instruments)
+                self.variations.append(loop)
 
         for snap in self._snap_data:
             self.snaps.append(Snap(snap, self, Set))
