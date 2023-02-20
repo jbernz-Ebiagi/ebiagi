@@ -20,12 +20,15 @@ class ClipSelectorDevice(EbiagiComponent):
         self.lock = False
 
     def on_selected_chain_change(self):
-        for i, clip_slot in enumerate(self._instrument._track.clip_slots):
-            if clip_slot.has_clip:
-                if parse_clip_name(clip_slot.clip.name) == self._device.view.selected_chain.name:
-                    clips = self.get_instrument_clips_at_index(self._instrument, i)
-                    quantization = math.floor(self.quantization_knob.value)
-                    self.midi_action(partial(self.trigger_clips_with_quantiaztion, clips, quantization))
+        clips = []
+        for track in [self._instrument._track] + self._instrument._ex_tracks:
+            for i, clip_slot in enumerate(track.clip_slots):
+                if clip_slot.has_clip:
+                    if parse_clip_name(clip_slot.clip.name) == self._device.view.selected_chain.name:
+                        clips.append(clip_slot.clip)
+        if len(clips) > 0:
+            quantization = math.floor(self.quantization_knob.value)
+            self.midi_action(partial(self.trigger_clips_with_quantiaztion, clips, quantization))
 
     def trigger_clips_with_quantiaztion(self, clips, quantization):
         if self.lock:
@@ -38,18 +41,13 @@ class ClipSelectorDevice(EbiagiComponent):
 
     def finish_clips_trigger(self, clips, return_quantization):
         for clip in clips:
+            l = clip.legato
             clip.legato = 1
             if self._device.is_active:
                 clip.fire()
+            clip.legato = l
             clip.launch_quantization = return_quantization
             self.lock = False
-
-    def get_instrument_clips_at_index(self, instrument, i):
-        clips = []
-        for track in instrument._ex_tracks:
-            if track.clip_slots[i].has_clip:
-                clips.append(track.clip_slots[i].clip)
-        return clips
 
     def get_quantization_knob(self):
         for param in self._device.parameters:
