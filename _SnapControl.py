@@ -122,7 +122,6 @@ class SnapControl(Instrument):
             
     def disconnect(self):
         super(SnapControl, self).disconnect()
-        self.log('disconnect snap control')
         self._scheduler.stop()
         self.ramping_params = []
         return

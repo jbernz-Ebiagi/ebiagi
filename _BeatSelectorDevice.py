@@ -55,4 +55,5 @@ class BeatSelectorDevice(EbiagiComponent):
 
     def disconnect(self):
         super(BeatSelectorDevice, self).disconnect()
-        self.select_knob.remove_value_listener(self.on_selected_knob_change)
+        if(self.select_knob.value_has_listener(self.on_select_knob_change)):
+            self.select_knob.remove_value_listener(self.on_select_knob_change)

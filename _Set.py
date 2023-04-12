@@ -70,13 +70,13 @@ class Set(EbiagiComponent):
                     self.mft_input.set_global_instrument(instr)
                 self.global_instruments.append(instr)
 
-            #Add Snap Control
-            if is_snap_control(track.name):
-                sc = SnapControl(track, self)
-                m += 1
-                self.snap_control = sc
-                if self.twister_control:
-                    self.twister_control.assign_encoder(15, sc._knob, sc._knob.min, sc._knob.max, 'B')
+            # #Add Snap Control
+            # if is_snap_control(track.name):
+            #     sc = SnapControl(track, self)
+            #     m += 1
+            #     self.snap_control = sc
+            #     if self.twister_control:
+            #         self.twister_control.assign_encoder(15, sc._knob, sc._knob.min, sc._knob.max, 'B')
 
             #Add global loop
             if is_global_loop_track(track.name):
@@ -313,15 +313,15 @@ class Set(EbiagiComponent):
                 param.value = args
 
 
-    def start_crossfade(self):
-        if self.active_crossfade:
-            if self.crossfade_module:
-                self.crossfade_module.deactivate()
-                self.crossfade_module.clearCrossfade()
-                self.crossfade_module = None
-            self.targetted_module.clearCrossfade()
-        self.setCrossfadeA()
-        self.active_crossfade = not self.active_crossfade
+    # def start_crossfade(self):
+    #     if self.active_crossfade:
+    #         if self.crossfade_module:
+    #             self.crossfade_module.deactivate()
+    #             self.crossfade_module.clearCrossfade()
+    #             self.crossfade_module = None
+    #         self.targetted_module.clearCrossfade()
+    #     self.setCrossfadeA()
+    #     self.active_crossfade = not self.active_crossfade
 
     #TODO: Performance can be improved by mapping names
     def get_scene_index(self, name):
@@ -335,3 +335,4 @@ class Set(EbiagiComponent):
         super(Set, self).disconnect()
         for module in self.modules:
             module.disconnect()
+        # self.snap_control.disconnect()

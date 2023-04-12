@@ -39,17 +39,17 @@ class ClipSelectorDevice(EbiagiComponent):
             return
         self.lock = True
         return_quantization = math.floor(clips[0].launch_quantization)
+        return_legato = clips[0].legato
         for clip in clips:
             clip.launch_quantization = quantization
-        self.midi_action(partial(self.finish_clips_trigger, clips, return_quantization))
-
-    def finish_clips_trigger(self, clips, return_quantization):
-        for clip in clips:
-            l = clip.legato
             clip.legato = 1
-            if self._device.is_active and not clip.is_playing and clip:
+        self.midi_action(partial(self.finish_clips_trigger, clips, return_quantization, return_legato))
+
+    def finish_clips_trigger(self, clips, return_quantization, return_legato):
+        for clip in clips:
+            if self._device.is_active and not clip.is_playing and clip and self._instrument._track.playing_slot_index >= 0:
                 clip.fire()
-            clip.legato = l
+            clip.legato = return_legato
             clip.launch_quantization = return_quantization
             self.lock = False
 
@@ -72,14 +72,15 @@ class ClipSelectorDevice(EbiagiComponent):
 
     def get_selected_variation(self):
         variations = self.variations       
-        current_variation = variations[0]
+        current_variation = None
         selected_value = self.select_knob.value
         for v in self.variations:
-            if v.value <= selected_value and v.value > current_variation.value:
+            if v.value <= selected_value and (current_variation == None or v.value > current_variation.value):
                 current_variation = v
         return current_variation.name
 
     def disconnect(self):
         super(ClipSelectorDevice, self).disconnect()
-        self.select_knob.remove_value_listener(self.on_selected_knob_change)
+        if(self.select_knob.value_has_listener(self.on_select_knob_change)):
+            self.select_knob.remove_value_listener(self.on_select_knob_change)
 

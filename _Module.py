@@ -41,8 +41,8 @@ class Module(EbiagiComponent):
 
             i += 1
 
-        for instrument in self.instruments:
-            instrument.pair_macros(self.instruments)
+        # for instrument in self.instruments:
+        #     instrument.pair_macros(self.instruments)
 
         for scene in self._song.scenes:
             if is_loop(scene.name):
@@ -52,10 +52,10 @@ class Module(EbiagiComponent):
                 loop = Loop(track, scene, Set, self.instruments)
                 self.variations.append(loop)
 
-        for snap in self._snap_data:
-            self.snaps.append(Snap(snap, self, Set))
+        # for snap in self._snap_data:
+        #     self.snaps.append(Snap(snap, self, Set))
 
-        self.clearCrossfade()
+        # self.clearCrossfade()
 
                 
     def activate(self):
@@ -73,8 +73,11 @@ class Module(EbiagiComponent):
             instrument.deactivate()
         for send in self.sends:
             send.current_monitoring_state = 2
-        for loop in self.loops.values():
+        self.log('stop loops')
+        for loop in list(self.loops.values()):
             loop.stop()
+        for variation in self.variations:
+            variation.stop()
         self.fold()
         self._track.mute = 1
         # self._track.solo = 0
@@ -119,20 +122,20 @@ class Module(EbiagiComponent):
         self._track.set_data('snaps', data)
         self._snap_data = data
 
-    def setCrossfadeA(self):
-        self._track.mixer_device.crossfade_assign = 0
-        for instr in self.instruments:
-            instr._track.mixer_device.crossfade_assign = 0
+    # def setCrossfadeA(self):
+    #     self._track.mixer_device.crossfade_assign = 0
+    #     for instr in self.instruments:
+    #         instr._track.mixer_device.crossfade_assign = 0
 
-    def setCrossfadeB(self):
-        self._track.mixer_device.crossfade_assign = 2
-        for instr in self.instruments:
-            instr._track.mixer_device.crossfade_assign = 2
+    # def setCrossfadeB(self):
+    #     self._track.mixer_device.crossfade_assign = 2
+    #     for instr in self.instruments:
+    #         instr._track.mixer_device.crossfade_assign = 2
 
-    def clearCrossfade(self):
-        self._track.mixer_device.crossfade_assign = 1
-        for instr in self.instruments:
-            instr._track.mixer_device.crossfade_assign = 1
+    # def clearCrossfade(self):
+    #     self._track.mixer_device.crossfade_assign = 1
+    #     for instr in self.instruments:
+    #         instr._track.mixer_device.crossfade_assign = 1
 
     def disconnect(self):
         super(Module, self).disconnect()
