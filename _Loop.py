@@ -49,6 +49,8 @@ class Loop(EbiagiComponent):
                 #don't record if there are already clips
                 if not (clip_slot.will_record_on_start() and has_clip):
                     if len(clip_slot._clip_commands) > 0:
+                        self.log(len(clip_slot._clip_commands))
+                        self.log('has commands')
                         clip_slot.run_select_commands()
                     # elif not self.is_playing():
                     #     clip_slot.fire()
@@ -137,6 +139,7 @@ class ClipSlot(EbiagiComponent):
         if self._slot.has_clip:
             self.name = parse_clip_name(self._slot.clip.name)
             self._clip_commands = parse_clip_commands(self._slot.clip.name) or []
+            self.log(self._clip_commands)
 
     #(because clip_slot.will_record_on_start does not work)
     def will_record_on_start(self):
@@ -220,18 +223,46 @@ class ClipSlot(EbiagiComponent):
                     self._set.select_instrument(None, self._instrument)
                     self._set.deselect_instrument(None, self._instrument)
 
-                if 'SNAP' in command:
-                    index = int(parse_clip_command_param(command))
+                # if 'SNAP' in command:
+                #     index = int(parse_clip_command_param(command))
+                #     quantize = self._slot.clip.launch_quantization
+                #     # if Global, use that quantize
+                #     if quantize == 0:
+                #         quantize = self._song.clip_trigger_quantization
+                #     else:
+                #         quantize -= 1
+                #     # if None or less than a measure
+                # if quantize == 0 or quantize >= 5:
+                #     self._set.snap_control.select_snap(self._set.targetted_module.snaps[index])
+                #     self._set.snap_control.ramp(0)
+                # else:
+                #     beat_divisors = {
+                #         1: 8*self._song.signature_numerator,
+                #         2: 4*self._song.signature_numerator,
+                #         3: 2*self._song.signature_numerator,
+                #         4: 1*self._song.signature_numerator,
+                #     }
+                #     beat_divisor = beat_divisors[quantize]
+                #     total_beats = self._song.get_current_beats_song_time().beats + ((self._song.get_current_beats_song_time().bars - 1) * self._song.signature_numerator)
+                #     if total_beats % beat_divisor == 0:
+                #         self._set.snap_control.select_snap(self._set.targetted_module.snaps[index])
+                #         self._set.snap_control.ramp(0)
+                #     else:
+                #         beats_remaining = beat_divisor - (total_beats % beat_divisor) - 1
+                #         self._set.snap_control.schedule_snap(self._set.targetted_module.snaps[index], beats_remaining)
+
+                if 'AUM' in command:
+                    is_gradual = int(parse_clip_command_param(command))
                     quantize = self._slot.clip.launch_quantization
+                    beats_remaining = 0
                     # if Global, use that quantize
                     if quantize == 0:
                         quantize = self._song.clip_trigger_quantization
                     else:
                         quantize -= 1
-                    # if None or less than a measure
                     if quantize == 0 or quantize >= 5:
                         self._set.snap_control.select_snap(self._set.targetted_module.snaps[index])
-                        self._set.snap_control.ramp(0)
+                        beats_remaining = 0
                     else:
                         beat_divisors = {
                             1: 8*self._song.signature_numerator,
@@ -242,11 +273,34 @@ class ClipSlot(EbiagiComponent):
                         beat_divisor = beat_divisors[quantize]
                         total_beats = self._song.get_current_beats_song_time().beats + ((self._song.get_current_beats_song_time().bars - 1) * self._song.signature_numerator)
                         if total_beats % beat_divisor == 0:
-                            self._set.snap_control.select_snap(self._set.targetted_module.snaps[index])
-                            self._set.snap_control.ramp(0)
+                            beats_remaining = 0
                         else:
                             beats_remaining = beat_divisor - (total_beats % beat_divisor) - 1
-                            self._set.snap_control.schedule_snap(self._set.targetted_module.snaps[index], beats_remaining)
+
+                    for param in self._instrument.get_instrument_device().parameters:
+                        envelope = self._slot.clip.automation_envelope(param)
+                        if envelope:
+                            self._set.ramp_param(param, envelope.value_at_time(0.1), beats_remaining, is_gradual)
+
+                    # if None or less than a measure
+                    # if quantize == 0 or quantize >= 5:
+                    #     self._set.snap_control.select_snap(self._set.targetted_module.snaps[index])
+                    #     self._set.snap_control.ramp(0)
+                    # else:
+                    #     beat_divisors = {
+                    #         1: 8*self._song.signature_numerator,
+                    #         2: 4*self._song.signature_numerator,
+                    #         3: 2*self._song.signature_numerator,
+                    #         4: 1*self._song.signature_numerator,
+                    #     }
+                    #     beat_divisor = beat_divisors[quantize]
+                    #     total_beats = self._song.get_current_beats_song_time().beats + ((self._song.get_current_beats_song_time().bars - 1) * self._song.signature_numerator)
+                    #     if total_beats % beat_divisor == 0:
+                    #         self._set.snap_control.select_snap(self._set.targetted_module.snaps[index])
+                    #         self._set.snap_control.ramp(0)
+                    #     else:
+                    #         beats_remaining = beat_divisor - (total_beats % beat_divisor) - 1
+                    #         self._set.snap_control.schedule_snap(self._set.targetted_module.snaps[index], beats_remaining)
 
 
                 if 'PLAY' in command:

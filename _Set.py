@@ -4,7 +4,8 @@ from ._Module import Module
 from ._Input import Input, MFTInput
 from ._Instrument import Instrument
 from ._SnapControl import SnapControl
-from ._utils import qwerty_order
+from ._utils import qwerty_order, catch_exception
+import Live
 
 class Set(EbiagiComponent):
 
@@ -48,6 +49,10 @@ class Set(EbiagiComponent):
         self.twister_control.assign_encoder(31, tempo, 126, 144, 'G')
 
         self.mft_input = MFTInput(self, self.twister_control)
+
+        self._scheduler = Live.Base.Timer(callback=self.on_tick, interval=1, repeat=True)
+        self._scheduler.start()
+        self._ramping_params = []
 
         for track in self._song.tracks:
 
@@ -240,23 +245,23 @@ class Set(EbiagiComponent):
     def deselect_global_instrument(self, index):
         self.deselect_instrument(None, self.global_instruments[index])
 
-    def select_global_loop(self):
-        if self.global_loop.is_playing:
-            self.setCrossfadeA()
-        self.global_loop.fire()
+    # def select_global_loop(self):
+    #     if self.global_loop.is_playing:
+    #         self.setCrossfadeA()
+    #     self.global_loop.fire()
 
-    def stop_global_loop(self):
-        self.global_loop.stop()
+    # def stop_global_loop(self):
+    #     self.global_loop.stop()
 
     def clear_global_loop(self):
         self.global_loop.delete_clip()
         self.setCrossfadeB()
 
-    def setCrossfadeA(self):
-        self._song.master_track.mixer_device.crossfader.value = -1.0
+    # def setCrossfadeA(self):
+    #     self._song.master_track.mixer_device.crossfader.value = -1.0
 
-    def setCrossfadeB(self):
-        self._song.master_track.mixer_device.crossfader.value = 1.0
+    # def setCrossfadeB(self):
+    #     self._song.master_track.mixer_device.crossfader.value = 1.0
 
     def toggle_metronome(self):
         self._song.metronome = not self._song.metronome
@@ -312,6 +317,64 @@ class Set(EbiagiComponent):
             if param.name == 'Style':
                 param.value = args
 
+    @catch_exception
+    def ramp_param(self, param, value, num_beats, is_gradual):
+        #if the param is already ramping, stop that ramp
+        for ramping_param in self._ramping_params:
+            if ramping_param['param'] == param:
+                self._ramping_params.remove(ramping_param)
+
+        if not self._song.is_playing:
+            param.value = value
+            return
+
+        self._ramping_params.append({
+            'param': param,
+            'beats_remaining': num_beats,
+            'target_value': value,
+            'is_gradual': is_gradual
+        })    
+
+    @catch_exception
+    def on_tick(self):
+        if len(self._ramping_params) > 0:
+            self._do_ramp()
+        self._last_beat = self._song.get_current_beats_song_time().beats
+        self._last_subdivision = self._song.get_current_beats_song_time().sub_division
+        self._last_tick = self._song.get_current_beats_song_time().ticks
+
+    @staticmethod
+    def _update_parameter_value(param, value, _=None):
+        if value > param.max:
+            value = param.max
+        elif value < param.min:
+            value = param.min
+        param.value = value
+
+    @catch_exception
+    def _do_ramp(self):
+        current_tick = self._song.get_current_beats_song_time().ticks
+        tick_difference = float(current_tick - self._last_tick)
+
+        if tick_difference < 0:
+            tick_difference += 60
+
+        for param in self._ramping_params:
+            ticks_remaining = float(param['beats_remaining']*4*60 + (4 - self._last_subdivision)*60 + 60 - self._last_tick)
+            if ticks_remaining <= 0:
+                self._update_parameter_value(param['param'], param['target_value'])
+                self._ramping_params.remove(param)
+                return
+            elif param['is_gradual'] or ticks_remaining < 100:
+                value_difference = float(param['target_value'] - param['param'].value)
+                new_value = tick_difference/ticks_remaining*value_difference + param['param'].value
+                self._update_parameter_value(param['param'], new_value)
+
+            if self._song.get_current_beats_song_time().beats != self._last_beat:
+                param['beats_remaining'] -= 1
+            
+
+
 
     # def start_crossfade(self):
     #     if self.active_crossfade:
@@ -333,6 +396,8 @@ class Set(EbiagiComponent):
 
     def disconnect(self):
         super(Set, self).disconnect()
+        self._scheduler.stop()
+        self.ramping_params = []
         for module in self.modules:
             module.disconnect()
         # self.snap_control.disconnect()
