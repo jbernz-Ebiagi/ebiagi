@@ -12,6 +12,7 @@ def get_state(Set):
         ginstr = []
         globalLoop = None
         snaps = []
+        sections = []
         metronome = Set._song.metronome > 0
         beat = 0
         measure = 0
@@ -57,17 +58,29 @@ def get_state(Set):
             loops[key] = {
                 'color': color, 
                 'brightness': brightness,
-            }   
+            }
 
-
-        for snap in Set.targetted_module.snaps:
-            color = 'blue' if snap is Set.snap_control.selected_snap else 'white'
-            brightness = 1 if len(snap.snap_params) > 0 else 0
-            snaps.append({
-                'index': Set.targetted_module.snaps.index(snap),
+        for section in Set.targetted_module.spine.sections:
+            color = color_name(section.color())
+            brightness = 0
+            if section.active:
+                brightness = 1
+            if Set.targetted_module.spine.triggered_section is section:
+                brightness = 3 
+            sections.append({
+                'index': Set.targetted_module.spine.sections.index(section),
                 'color': color, 
                 'brightness': brightness,
-            })
+            })   
+
+        # for snap in Set.targetted_module.snaps:
+        #     color = 'blue' if snap is Set.snap_control.selected_snap else 'white'
+        #     brightness = 1 if len(snap.snap_params) > 0 else 0
+        #     snaps.append({
+        #         'index': Set.targetted_module.snaps.index(snap),
+        #         'color': color, 
+        #         'brightness': brightness,
+        #     })
 
         for global_instrument in Set.global_instruments:
             brightness = 1 if global_instrument.is_armed() else 0
@@ -111,7 +124,8 @@ def get_state(Set):
             'mfx': mfx,
             'ginstr': ginstr,
             'active_crossfade': active_crossfade,
-            'snaps': snaps,
+            # 'snaps': snaps,
+            'sections': sections,
             'metronome': metronome,
             'smart_record': smart_record,
             'woot_arp': woot_arp,

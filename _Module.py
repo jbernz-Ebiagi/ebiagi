@@ -3,6 +3,7 @@ from ._naming_conventions import *
 from ._Instrument import Instrument
 from ._Loop import Loop
 from ._Snap import Snap
+from ._Spine import Spine
 from ._utils import set_input_routing, set_output_routing
 
 
@@ -12,6 +13,7 @@ class Module(EbiagiComponent):
         super(Module, self).__init__()
         self._track = track
         self._set = Set
+        self.spine = None
         self.instruments = []
         self.sends = []
         self.loops = {}
@@ -28,6 +30,10 @@ class Module(EbiagiComponent):
 
         i = list(self._song.tracks).index(track) + 1
         while not is_module(self._song.tracks[i].name) and self._song.tracks[i].is_grouped:
+
+            #Add Spine
+            if is_spine(self._song.tracks[i].name):
+                self.spine = Spine(self._song.tracks[i], Set, self)
 
             #Add Instruments
             if is_instrument(self._song.tracks[i].name):
@@ -81,13 +87,18 @@ class Module(EbiagiComponent):
         self.fold()
         self._track.mute = 1
         # self._track.solo = 0
-        self._track.mixer_device.volume.value = self._track.mixer_device.volume.min      
+        # self._track.mixer_device.volume.value = self._track.mixer_device.volume.min
+        self._track.mixer_device.crossfade_assign = 1    
 
     def fold(self):
         self._track.fold_state = 1
 
     def unfold(self):
         self._track.fold_state = 0
+
+    def select_section(self, index):
+        if self.spine:
+            self.spine.select_section(index)
 
     def assign_snap(self, index, param, track):
         for instrument in self.instruments:

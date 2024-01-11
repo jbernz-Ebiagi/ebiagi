@@ -14,3 +14,6 @@ class EbiagiComponent(ControlSurfaceComponent):
 
     def midi_action(self, action, priority=False):
         self.canonical_parent.trigger_midi_action(action, priority)
+
+    def disconnect(self):
+        super(EbiagiComponent, self).disconnect()

@@ -41,6 +41,8 @@ class EbiagiBase(CompoundComponent, Subject):
                 self.twister_control = s
             if s.__class__.__name__ == 'ParameterMidiLink':
                 self.midi_param_link = s
+            if s.__class__.__name__ == 'AudioSwift':
+                self.audio_swift = s
 
         self.create_actions()
 
@@ -102,6 +104,7 @@ class EbiagiBase(CompoundComponent, Subject):
         self.add_global_action('mute_all_loops', self.mute_all_loops)
         self.add_global_action('unmute_all_loops', self.unmute_all_loops)
         self.add_global_action('quantize_loop', self.quantize_loop)
+        self.add_global_action('select_section', self.select_section)
         self.add_global_action('select_snap', self.select_snap)
         self.add_global_action('deselect_snap', self.deselect_snap)
         self.add_global_action('assign_snap', self.assign_snap)
@@ -128,11 +131,15 @@ class EbiagiBase(CompoundComponent, Subject):
 
     @catch_exception
     def rebuild_set(self, action_def='', args=''):
-        self.twister_control.rebuild()
-        self.midi_param_link.rebuild()
-        if self.set:
-            self.set.disconnect()
-        self.set = Set(self.twister_control)
+        try:
+            self.twister_control.rebuild()
+            self.midi_param_link.rebuild()
+            self.audio_swift.rebuild()
+            if self.set:
+                self.set.disconnect()
+        except:
+            self.log('error disconnecting Set')
+        self.set = Set(self.twister_control, self.audio_swift)
 
     @catch_exception
     def assign_module(self, action_def, args):
@@ -142,6 +149,7 @@ class EbiagiBase(CompoundComponent, Subject):
 
     @catch_exception
     def clear_module(self, action_def, args):
+        self.log('clear')
         slot = args[-1]
         self.set.clear_module(slot)
 
@@ -200,6 +208,12 @@ class EbiagiBase(CompoundComponent, Subject):
     @catch_exception    
     def stop_all_loops(self, action_def, args):
         self.set.stop_all_loops()
+
+    @catch_exception    
+    def select_section(self, action_def, args):
+        self.log('select section')
+        index = int(args[-1])
+        self.set.select_section(index)
 
     @catch_exception    
     def select_snap(self, action_def, args):

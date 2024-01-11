@@ -66,12 +66,12 @@ class Instrument(EbiagiComponent):
                     self._create_clip_selectors(chain.devices)
 
     def _assign_routing(self, track):
-        if is_source_track(track.name):
-            set_input_routing(track, 'No Input')
-            set_output_routing(track, self._track.name)
-        elif is_trunk_track(track.name):
-            set_input_routing(track, 'No Input')
-        elif is_compiled_track(track.name):
+        # if is_source_track(track.name):
+        #     set_input_routing(track, 'No Input')
+        #     set_output_routing(track, self._track.name)
+        # elif is_trunk_track(track.name):
+        #     set_input_routing(track, 'No Input')
+        if is_compiled_track(track.name):
             set_input_routing(track, self._track.name)
         elif is_light_track(track.name):
             set_output_routing(track, 'MASK')
@@ -142,6 +142,40 @@ class Instrument(EbiagiComponent):
                                                             'link': s.link_parameters(param_A, param_B),
                                                             'color': track.color_index
                                                         })
+                            # #Hack fopr converge
+                            # if get_paired_macro_params(param_A.name)[1] == 'Converge':
+                            #     for device in track.devices:
+                            #         if device.can_have_chains:
+                            #             for subdevice in device.chains[0].devices:
+                            #                 if subdevice.name == 'Convergence Arpeggiator':
+                            #                     for parameter in subdevice.parameters:
+                            #                         if parameter.name == 'Converge':
+                            #                             for s in get_control_surfaces():
+                            #                                 if s.__class__.__name__ == 'ParameterMidiLink':
+                            #                                     self.paired_macros.append(
+                            #                                         {
+                            #                                             'linking_param': param_A,
+                            #                                             'link': s.link_parameters(param_A, parameter),
+                            #                                             'color': track.color_index
+                            #                                         })
+                            # #Hack fopr converge
+                            # if get_paired_macro_params(param_A.name)[1] == 'Converge Rate':
+                            #     for device in track.devices:
+                            #         if device.can_have_chains:
+                            #             for subdevice in device.chains[0].devices:
+                            #                 if subdevice.name == 'Convergence Arpeggiator':
+                            #                     for parameter in subdevice.parameters:
+                            #                         if parameter.name == 'Rate':
+                            #                             for s in get_control_surfaces():
+                            #                                 if s.__class__.__name__ == 'ParameterMidiLink':
+                            #                                     self.paired_macros.append(
+                            #                                         {
+                            #                                             'linking_param': param_A,
+                            #                                             'link': s.link_parameters(param_A, parameter),
+                            #                                             'color': track.color_index
+                            #                                         })
+
+
             i += 1
 
     def get_paired_macro(self, param):
@@ -221,6 +255,10 @@ class Instrument(EbiagiComponent):
             if track.can_be_armed:
                 track.current_monitoring_state = 0
                 track.arm = 0
+        elif is_live_track(track.name):
+            if track.can_be_armed:
+                track.current_monitoring_state = 1
+                track.arm = 1
         else:
             track.current_monitoring_state = 1
             if track.can_be_armed:
@@ -228,6 +266,7 @@ class Instrument(EbiagiComponent):
     
     def disconnect(self):
         super(Instrument, self).disconnect()
+        self.stop()
         for pm in self.paired_macros:
             pm['link'].clear()
         for selector in self.clip_selectors + self.beat_selectors:

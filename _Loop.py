@@ -3,6 +3,7 @@ from ._naming_conventions import *
 from ._utils import is_empty_midi_clip
 from functools import partial
 import Live
+import math
 
 class Loop(EbiagiComponent):
 
@@ -49,8 +50,6 @@ class Loop(EbiagiComponent):
                 #don't record if there are already clips
                 if not (clip_slot.will_record_on_start() and has_clip):
                     if len(clip_slot._clip_commands) > 0:
-                        self.log(len(clip_slot._clip_commands))
-                        self.log('has commands')
                         clip_slot.run_select_commands()
                     # elif not self.is_playing():
                     #     clip_slot.fire()
@@ -67,7 +66,8 @@ class Loop(EbiagiComponent):
         for clip_slot in self._clip_slots:
             if not clip_slot.is_group_clip():
                 if self.is_triggered():
-                    self._track.stop_all_clips()
+                    clip_slot.stop()
+                    #self._track.stop_all_clips()
                 else:
                     clip_slot.stop()
 
@@ -146,12 +146,12 @@ class ClipSlot(EbiagiComponent):
         return not self._slot.has_clip and self._slot.has_stop_button and self._track.can_be_armed and self._track.arm
 
     def fire(self):
-        if self.will_record_on_start() and self._track.playing_slot_index > 0:
-            if self._track.has_midi_input:
-                self._slot.create_clip(1.0)
-                self._slot.clip.name = 'CAN_CLEAR'
-                self.deactivate_clip()
-            return
+        # if self.will_record_on_start() and self._track.playing_slot_index > 0:
+        #     if self._track.has_midi_input:
+        #         self._slot.create_clip(1.0)
+        #         self._slot.clip.name = 'CAN_CLEAR'
+        #         self.deactivate_clip()
+        #     return
         self._slot.fire()
         # if self.will_record_on_start() and not self._instrument.is_selected():
         #     return
@@ -163,6 +163,9 @@ class ClipSlot(EbiagiComponent):
             if list(self._track.clip_slots)[self._set.get_scene_index('STOPCLIP')].has_clip:
                 list(self._track.clip_slots)[self._set.get_scene_index('STOPCLIP')].fire()
             else:
+                for command in self._clip_commands:
+                    if 'FA_BASE' in command:
+                        self._track.stop_all_clips()
                 self._slot.stop()
 
     def is_clearable(self):
@@ -173,14 +176,15 @@ class ClipSlot(EbiagiComponent):
 
     def finish_record(self):
         self._slot.clip.name = 'CAN_CLEAR'
-        if self._slot.clip.is_midi_clip:
-            if is_empty_midi_clip(self._slot.clip):
-                self.deactivate_clip()
-                return False
-        if self._slot.clip.is_audio_clip:
-            if not self._instrument.audio_in_armed():
-                self.deactivate_clip()
-                return False
+        self._slot.clip.legato = 1
+        # if self._slot.clip.is_midi_clip:
+        #     if is_empty_midi_clip(self._slot.clip):
+        #         self.deactivate_clip()
+        #         return False
+        # if self._slot.clip.is_audio_clip:
+        #     if not self._instrument.audio_in_armed():
+        #         self.deactivate_clip()
+        #         return False
         self._slot.fire()
         # self._slot.clip.add_playing_status_listener(partial(self.loop_clip,self._slot.clip))
         return True
@@ -261,7 +265,7 @@ class ClipSlot(EbiagiComponent):
                     else:
                         quantize -= 1
                     if quantize == 0 or quantize >= 5:
-                        self._set.snap_control.select_snap(self._set.targetted_module.snaps[index])
+                        # self._set.snap_control.select_snap(self._set.targetted_module.snaps[index])
                         beats_remaining = 0
                     else:
                         beat_divisors = {
@@ -275,40 +279,27 @@ class ClipSlot(EbiagiComponent):
                         if total_beats % beat_divisor == 0:
                             beats_remaining = 0
                         else:
-                            beats_remaining = beat_divisor - (total_beats % beat_divisor) - 1
+                            beats_remaining = beat_divisor - (total_beats % beat_divisor)
 
                     for param in self._instrument.get_instrument_device().parameters:
                         envelope = self._slot.clip.automation_envelope(param)
                         if envelope:
                             self._set.ramp_param(param, envelope.value_at_time(0.1), beats_remaining, is_gradual)
 
-                    # if None or less than a measure
-                    # if quantize == 0 or quantize >= 5:
-                    #     self._set.snap_control.select_snap(self._set.targetted_module.snaps[index])
-                    #     self._set.snap_control.ramp(0)
-                    # else:
-                    #     beat_divisors = {
-                    #         1: 8*self._song.signature_numerator,
-                    #         2: 4*self._song.signature_numerator,
-                    #         3: 2*self._song.signature_numerator,
-                    #         4: 1*self._song.signature_numerator,
-                    #     }
-                    #     beat_divisor = beat_divisors[quantize]
-                    #     total_beats = self._song.get_current_beats_song_time().beats + ((self._song.get_current_beats_song_time().bars - 1) * self._song.signature_numerator)
-                    #     if total_beats % beat_divisor == 0:
-                    #         self._set.snap_control.select_snap(self._set.targetted_module.snaps[index])
-                    #         self._set.snap_control.ramp(0)
-                    #     else:
-                    #         beats_remaining = beat_divisor - (total_beats % beat_divisor) - 1
-                    #         self._set.snap_control.schedule_snap(self._set.targetted_module.snaps[index], beats_remaining)
-
+                if 'PQUANT' in command:
+                    quantization = int(parse_clip_command_param(command))
+                    if self._track.playing_slot_index >= 0:
+                        self.trigger_clip_with_quantiaztion(self._slot.clip, quantization)
+                    else:
+                        self._slot.fire()
 
                 if 'PLAY' in command:
                     clip_name_to_play = parse_clip_command_param(command)
                     for clip_slot in self._track.clip_slots:
                         if clip_slot.has_clip:
                             if parse_clip_name(clip_slot.clip.name) == clip_name_to_play:
-                                clip_slot.fire()
+                                self.trigger_clip_with_quantiaztion(clip_slot.clip, 0)
+                                # clip_slot.fire()
 
                 if 'STOP' in command:
                     self._track.stop_all_clips()
@@ -319,12 +310,27 @@ class ClipSlot(EbiagiComponent):
                 if 'HOLD' in command:
                     self._slot.fire()
 
+                if 'RETURN' in command:
+                    self._slot.fire()
+
     
     def run_deselect_commands(self):
         if self._slot.has_clip:
 
             if self._clip_commands:
                 for command in self._clip_commands:
+
+                    if 'RETURN' in command:
+                        for clip_slot in self._track.clip_slots:
+                            if (clip_slot.is_playing or clip_slot.is_triggered) and clip_slot.clip != self._slot.clip and not self._slot.is_triggered:
+                                return
+                        params = parse_clip_command_param(command).split(',')
+                        clip_name_to_play = params[0]
+                        quantization = int(params[1])
+                        for clip_slot in self._track.clip_slots:
+                            if clip_slot.has_clip:
+                                if parse_clip_name(clip_slot.clip.name) == clip_name_to_play:
+                                    self.trigger_clip_with_quantiaztion(clip_slot.clip, quantization)
 
                     if 'HOLD' in command and self._held:
                         can_stop = True
@@ -339,4 +345,13 @@ class ClipSlot(EbiagiComponent):
 
             self._held = False
 
+
+    def trigger_clip_with_quantiaztion(self, clip, quantization):
+        return_quantization = math.floor(clip.launch_quantization)
+        clip.launch_quantization = quantization
+        self.midi_action(partial(self.finish_clip_trigger, clip, return_quantization))
+
+    def finish_clip_trigger(self, clip, return_quantization):
+        clip.fire()
+        clip.launch_quantization = return_quantization
 

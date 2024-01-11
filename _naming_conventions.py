@@ -30,6 +30,9 @@ def is_send(name):
 def is_ex_instrument_track(name):
     return name.startswith('X[')
 
+def is_spine(name):
+    return name == '[SPINE]'
+
 def is_source_track(name):
     return name.endswith('[S]')
 
@@ -41,6 +44,9 @@ def is_compiled_track(name):
 
 def is_light_track(name):
     return name.endswith('[M]')
+
+def is_live_track(name):
+    return name.endswith('[L]')
 
 def is_loop(name):
     return name.startswith('loop[')
@@ -76,7 +82,7 @@ def parse_clip_name(name):
 
 def parse_clip_commands(name):
     words = name.split()
-    commands = [word for word in words if any(keyword in word for keyword in ('PLAY', 'SNAP', 'HOLD', 'MUTE', 'STOP', 'AUM'))]
+    commands = [word for word in words if any(keyword in word for keyword in ('PLAY', 'SNAP', 'HOLD', 'MUTE', 'STOP', 'AUM', 'SELECT', 'PQUANT', 'RETURN', 'FA_BASE'))]
     return commands
 
 def parse_clip_command_param(command):

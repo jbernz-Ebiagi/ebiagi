@@ -54,8 +54,6 @@ class Input(EbiagiComponent):
 
 ####
 
-NUM_DYNAMIC_ENCODERS = 15
-
 color_letters = [
 	'B', #blue
 	'p', #pink
@@ -107,6 +105,7 @@ class MFTInput(EbiagiComponent):
         self.short_name = 'MFT'
 
         self.log('Initializing MFT Input')
+        self.NUM_DYNAMIC_ENCODERS = 15
         self.twister_control = twister_control
 
 
@@ -120,7 +119,7 @@ class MFTInput(EbiagiComponent):
     def set_instrument(self, instrument):
         self.selected_instrument = instrument
         i = 0
-        while i < NUM_DYNAMIC_ENCODERS:
+        while i < self.NUM_DYNAMIC_ENCODERS:
             param = instrument.get_instrument_device().parameters[i+1]
             color = get_manual_color(param.name, instrument)
             if instrument.get_paired_macro(param):
@@ -138,8 +137,55 @@ class MFTInput(EbiagiComponent):
     def clear(self):
         self._instruments = set([])
         i = 0
-        while i < NUM_DYNAMIC_ENCODERS:
+        while i < self.NUM_DYNAMIC_ENCODERS:
             self.twister_control.clear_encoder(i)
+            i += 1
+
+    def is_active(self):
+        return self.selected_instrument != None
+
+    def empty(self):
+        return len(self._instruments) == 0
+
+class ASInput(EbiagiComponent):
+
+    def __init__(self, Set, audio_swift):
+        super(ASInput, self).__init__()
+        self._set = Set
+        self._instruments = set([])
+
+        self.selected_instrument = None
+
+        self.has_audio_input = False
+        self.has_midi_input = False
+
+        self.short_name = 'AS'
+        self.NUM_DYNAMIC_ENCODERS = 4
+
+        self.log('Initializing AS Input')
+        self.audio_swift = audio_swift
+
+
+    def add_instrument(self, instrument):
+        self._instruments.add(instrument)
+        if len(self._instruments) == 1:
+            self.set_instrument(instrument)
+        else:
+            self.clear()
+
+    def set_instrument(self, instrument):
+        self.selected_instrument = instrument
+        i = 0
+        while i < self.NUM_DYNAMIC_ENCODERS:
+            param = instrument.get_instrument_device().parameters[i+1+12]
+            self.audio_swift.assign_encoder(i, param, param.min, param.max)
+            i += 1
+
+    def clear(self):
+        self._instruments = set([])
+        i = 0
+        while i < NUM_DYNAMIC_ENCODERS:
+            self.audio_swift.clear_encoder(i)
             i += 1
 
     def is_active(self):

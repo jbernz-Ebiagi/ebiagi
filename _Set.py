@@ -1,7 +1,7 @@
 from ._EbiagiComponent import EbiagiComponent
 from ._naming_conventions import *
 from ._Module import Module
-from ._Input import Input, MFTInput
+from ._Input import Input, MFTInput, ASInput
 from ._Instrument import Instrument
 from ._SnapControl import SnapControl
 from ._utils import qwerty_order, catch_exception
@@ -9,7 +9,7 @@ import Live
 
 class Set(EbiagiComponent):
 
-    def __init__(self, twister_control):
+    def __init__(self, twister_control, audio_swift):
         super(Set, self).__init__()
 
         self.loading = True
@@ -44,11 +44,16 @@ class Set(EbiagiComponent):
         a = 0
 
         self.twister_control = twister_control
+        self.audio_swift = audio_swift
         
-        tempo = self.song().master_track.mixer_device.song_tempo
-        self.twister_control.assign_encoder(31, tempo, 126, 144, 'G')
+        # tempo = self.song().master_track.mixer_device.song_tempo
+        # self.twister_control.assign_encoder(15, tempo, 126, 144, 'G')
+
+        crossfader = self.song().master_track.mixer_device.crossfader
+        self.twister_control.assign_encoder(15, crossfader, -1.0, 1.0, 'R')
 
         self.mft_input = MFTInput(self, self.twister_control)
+        self.as_input = ASInput(self, self.audio_swift)
 
         self._scheduler = Live.Base.Timer(callback=self.on_tick, interval=1, repeat=True)
         self._scheduler.start()
@@ -69,11 +74,11 @@ class Set(EbiagiComponent):
         for track in self._song.tracks:
 
             #Add Global Instrument
-            if is_global_instrument(track.name):
-                instr = Instrument(track, self)
-                if instr.short_name == 'SFX':
-                    self.mft_input.set_global_instrument(instr)
-                self.global_instruments.append(instr)
+            # if is_global_instrument(track.name):
+            #     instr = Instrument(track, self)
+            #     if instr.short_name == 'SFX':
+            #         self.mft_input.set_global_instrument(instr)
+            #     self.global_instruments.append(instr)
 
             # #Add Snap Control
             # if is_snap_control(track.name):
@@ -116,9 +121,11 @@ class Set(EbiagiComponent):
                 self.active_modules[slot] = self.modules[index]
                 volume = self.active_modules[slot]._track.mixer_device.volume
                 if slot == 'A':
-                    self.twister_control.assign_encoder(29, volume, volume.min, 0.8, 'R')
+                    self.active_modules[slot]._track.mixer_device.crossfade_assign = 0
+                    # self.twister_control.assign_encoder(13, volume, volume.min, 0.8, 'R')
                 else:
-                    self.twister_control.assign_encoder(30, volume, volume.min, 0.8, 'R')
+                    self.active_modules[slot]._track.mixer_device.crossfade_assign = 2
+                    # self.twister_control.assign_encoder(14, volume, volume.min, 0.8, 'R')
                 self.target_module(slot)
             else:
                 self.message('Module already active')
@@ -143,20 +150,18 @@ class Set(EbiagiComponent):
 
     def clear_module(self, slot):
         #if volume is 0 return error
-        if self.active_modules[slot]._track.mixer_device.volume.value != self.active_modules[slot]._track.mixer_device.volume.min:
-            self.message('Set volume to 0 before clearing')
-            return
-        if self.active_modules[slot] is self.targetted_module:
-            if slot == 'A':
-                self.target_module('B')
-            else:
-                self.target_module('A')
-        self.active_modules[slot].deactivate()
-        self.active_modules[slot] = None
-        if slot == 'A':
-            self.twister_control.clear_encoder(13)
+        if slot == 'A' and self.song().master_track.mixer_device.crossfader.value == 1 or  slot == 'B' and self.song().master_track.mixer_device.crossfader.value == -1:
+            if self.active_modules[slot] is self.targetted_module:
+                if slot == 'A':
+                    self.target_module('B')
+                else:
+                    self.target_module('A')
+            self.active_modules[slot].deactivate()
+            self.active_modules[slot] = None
+            self.track.mixer_device.crossfade_assign = 1
         else:
-            self.twister_control.clear_encoder(14)
+            self.message('Crossfade away entirely before clearing')
+            return
 
     def toggle_input(self, key):
         for ipt in self.midi_inputs + self.audio_inputs:
@@ -177,6 +182,7 @@ class Set(EbiagiComponent):
             instrument.select()
             #always assign mft to selected instrument
             self.mft_input.set_instrument(instrument)
+            self.as_input.set_instrument(instrument)
 
     def deselect_instrument(self, index, instrument=None):
         if not instrument:
@@ -220,6 +226,9 @@ class Set(EbiagiComponent):
         # self.global_loop_track.arm = 1
         for instr in self.targetted_module.instruments:
             instr.unmute_loops()
+
+    def select_section(self, index):
+        self.targetted_module.select_section(index)
 
     def select_snap(self, index):
         self.snap_control.select_snap(self.targetted_module.snaps[index])
