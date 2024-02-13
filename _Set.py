@@ -20,7 +20,7 @@ class Set(EbiagiComponent):
 
         self.woot = None
         
-        self.snap_control = None
+        self.snap_control = SnapControl(self)
 
         self.modules = []
         self.active_modules = {
@@ -34,6 +34,7 @@ class Set(EbiagiComponent):
         self.global_loop_track = None
 
         self.held_instruments = set([])
+        self.selected_instrument = None
 
         self.smart_loop = None
 
@@ -158,7 +159,7 @@ class Set(EbiagiComponent):
                     self.target_module('A')
             self.active_modules[slot].deactivate()
             self.active_modules[slot] = None
-            self.track.mixer_device.crossfade_assign = 1
+            # self.track.mixer_device.crossfade_assign = 1
         else:
             self.message('Crossfade away entirely before clearing')
             return
@@ -183,6 +184,7 @@ class Set(EbiagiComponent):
             #always assign mft to selected instrument
             self.mft_input.set_instrument(instrument)
             self.as_input.set_instrument(instrument)
+            self.selected_instrument = instrument
 
     def deselect_instrument(self, index, instrument=None):
         if not instrument:
@@ -190,6 +192,12 @@ class Set(EbiagiComponent):
         if instrument in self.held_instruments: 
             self.held_instruments.remove(instrument)
         #instrument.deselect()
+
+    def select_instrument_by_name(self, name):
+        for instrument in self.targetted_module.instruments:
+            if instrument.short_name == name:
+                self.select_instrument(None, instrument)
+                self.deselect_instrument(None, instrument)
 
     def stop_instrument(self, index, instrument=None):
         if not instrument:
@@ -202,11 +210,21 @@ class Set(EbiagiComponent):
     def deselect_loop(self, key):
         self.targetted_module.loops[key].deselect()
 
+    def select_section(self, index):
+        self.targetted_module.select_section(index)
+        # self.targetted_module.sections[index].select()
+
+    def deselect_section(self, index):
+        self.targetted_module.sections[index].deselect()
+
     def stop_loop(self, key):
         self.targetted_module.loops[key].stop()
 
+    def stop_section(self, index):
+        self.targetted_module.sections[index].stop()
+
     def stop_all_loops(self):
-        for loop in list(self.targetted_module.loops.values()) + self.targetted_module.variations:
+        for loop in list(self.targetted_module.loops.values()) + self.targetted_module.variations + self.targetted_module.sections:
             loop.stop()
 
     def clear_loop(self, key):
@@ -227,8 +245,10 @@ class Set(EbiagiComponent):
         for instr in self.targetted_module.instruments:
             instr.unmute_loops()
 
-    def select_section(self, index):
-        self.targetted_module.select_section(index)
+    def disable_automation(self):
+        for module in self.modules:
+            if module._track.mute == 1:
+                module.disable_automation()
 
     def select_snap(self, index):
         self.snap_control.select_snap(self.targetted_module.snaps[index])
@@ -348,12 +368,15 @@ class Set(EbiagiComponent):
     def on_tick(self):
         if len(self._ramping_params) > 0:
             self._do_ramp()
-        self._last_beat = self._song.get_current_beats_song_time().beats
-        self._last_subdivision = self._song.get_current_beats_song_time().sub_division
-        self._last_tick = self._song.get_current_beats_song_time().ticks
+        if self._song and self._song.get_current_beats_song_time():
+            self._last_beat = self._song.get_current_beats_song_time().beats
+            self._last_subdivision = self._song.get_current_beats_song_time().sub_division
+            self._last_tick = self._song.get_current_beats_song_time().ticks
 
     @staticmethod
     def _update_parameter_value(param, value, _=None):
+        if not param.is_enabled:
+            return
         if value > param.max:
             value = param.max
         elif value < param.min:
@@ -409,4 +432,4 @@ class Set(EbiagiComponent):
         self.ramping_params = []
         for module in self.modules:
             module.disconnect()
-        # self.snap_control.disconnect()
+        self.snap_control.disconnect()

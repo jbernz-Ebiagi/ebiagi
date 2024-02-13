@@ -60,15 +60,15 @@ def get_state(Set):
                 'brightness': brightness,
             }
 
-        for section in Set.targetted_module.spine.sections:
+        for section in Set.targetted_module.sections:
             color = color_name(section.color())
             brightness = 0
-            if section.active:
+            if section.is_playing():
                 brightness = 1
-            if Set.targetted_module.spine.triggered_section is section:
-                brightness = 3 
+            if section.is_triggered():
+                brightness = 3    
             sections.append({
-                'index': Set.targetted_module.spine.sections.index(section),
+                'index': Set.targetted_module.sections.index(section),
                 'color': color, 
                 'brightness': brightness,
             })   

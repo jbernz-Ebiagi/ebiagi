@@ -19,6 +19,9 @@ class Module(EbiagiComponent):
         self.loops = {}
         self.variations = []
 
+        self.selected_section = None
+        self.sections = []
+
         self.short_name = get_short_name(track.name.split('.')[0])
 
         self._snap_data = self._track.get_data('snaps', False) or [[],[],[],[],[],[]]
@@ -31,9 +34,9 @@ class Module(EbiagiComponent):
         i = list(self._song.tracks).index(track) + 1
         while not is_module(self._song.tracks[i].name) and self._song.tracks[i].is_grouped:
 
-            #Add Spine
-            if is_spine(self._song.tracks[i].name):
-                self.spine = Spine(self._song.tracks[i], Set, self)
+            # #Add Spine
+            # if is_spine(self._song.tracks[i].name):
+            #     self.spine = Spine(self._song.tracks[i], Set, self)
 
             #Add Instruments
             if is_instrument(self._song.tracks[i].name):
@@ -57,9 +60,12 @@ class Module(EbiagiComponent):
             if is_variation(scene.name):
                 loop = Loop(track, scene, Set, self.instruments)
                 self.variations.append(loop)
+            if is_section(scene.name):
+                loop = Loop(track, scene, Set, self.instruments)
+                self.sections.append(loop)
 
-        # for snap in self._snap_data:
-        #     self.snaps.append(Snap(snap, self, Set))
+        for snap in self._snap_data:
+            self.snaps.append(Snap(snap, self, Set))
 
         # self.clearCrossfade()
 
@@ -85,6 +91,7 @@ class Module(EbiagiComponent):
         for variation in self.variations:
             variation.stop()
         self.fold()
+        self._track.stop_all_clips()
         self._track.mute = 1
         # self._track.solo = 0
         # self._track.mixer_device.volume.value = self._track.mixer_device.volume.min
@@ -96,9 +103,15 @@ class Module(EbiagiComponent):
     def unfold(self):
         self._track.fold_state = 0
 
+    # def select_section(self, index):
+    #     if self.spine:
+    #         self.spine.select_section(index)
+
     def select_section(self, index):
-        if self.spine:
-            self.spine.select_section(index)
+        if self.selected_section and not self.selected_section.is_legato:
+            self.selected_section.stop()
+        self.sections[index].select()
+        self.selected_section = self.sections[index]
 
     def assign_snap(self, index, param, track):
         for instrument in self.instruments:
@@ -126,12 +139,23 @@ class Module(EbiagiComponent):
         self._save_snaps()
         self.message('Removed all params from snap %s' % str(index+1))
 
+    def disable_automation(self):
+        for instrument in self.instruments:
+            instrument.disable_automation()
+
+    def re_enable_automation(self):
+        for instrument in self.instruments:
+            instrument.re_enable_automation()
+
     def _save_snaps(self):
         data = []
         for snap in self.snaps:
             data.append(snap.get_data())
         self._track.set_data('snaps', data)
         self._snap_data = data
+
+    def stop_all(self):
+        self._track.stop_all_clips()
 
     # def setCrossfadeA(self):
     #     self._track.mixer_device.crossfade_assign = 0
@@ -152,3 +176,5 @@ class Module(EbiagiComponent):
         super(Module, self).disconnect()
         for instrument in self.instruments:
             instrument.disconnect()
+        if self.spine:
+            spine.disconnect()

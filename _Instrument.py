@@ -89,8 +89,14 @@ class Instrument(EbiagiComponent):
                     clip_slot.fire()
             for track in [self._track] + self._ex_tracks:
                 self.set_default_monitoring_state(track)
+                for clip in track.arrangement_clips:
+                    clip.muted = 0
+                if self.get_ex_instrument_device(track):
+                    self.get_ex_instrument_device(track).parameters[0].value = 1
             # Timer(0.5, partial(self.pair_macros, self._module.instruments)).start()
             self.pair_macros(self._module.instruments)
+            self.assign_snap_macros(self._module.snaps)
+        # self.re_enable_automation()
 
     def deactivate(self):
         if len(self._track.devices) > 0:
@@ -102,19 +108,49 @@ class Instrument(EbiagiComponent):
             for track in [self._track] + self._ex_tracks:
                 if track.can_be_armed:
                     track.arm = 0 
+                if self.get_ex_instrument_device(track):
+                    self.get_ex_instrument_device(track).parameters[0].value = 0
+                for clip in track.arrangement_clips:
+                    clip.muted = 1
+        # self.disable_automation()
 
     def select(self):
         self._song.view.selected_track = self._track
+        for clip in self._track.arrangement_clips:
+            clip.fire()
         if self._input:
             self._input.set_instrument(self)
+
+    def re_enable_automation(self):
+        for track in [self._track] + self._ex_tracks:
+            if self.get_ex_instrument_device(track):
+                for p in self.get_ex_instrument_device(track).parameters:
+                    if p.state != 2:
+                        p.re_enable_automation()
+
+    def disable_automation(self):
+        for track in [self._track] + self._ex_tracks:
+            if self.get_ex_instrument_device(track):
+                for p in self.get_ex_instrument_device(track).parameters:
+                    if p.state != 2 and p.automation_state == 1:
+                        p.value = p.min
 
     # def deselect(self):
     #    self.input.remove_instrument(self)
 
-    def get_instrument_device(self):
-        for device in self._track.devices:
+    def get_instrument_device(self, track=None):
+        if track is None:
+            track = self._track
+        for device in track.devices:
             if device.can_have_chains:
                 return device
+        return None
+
+    def get_ex_instrument_device(self, track):
+        for device in track.devices:
+            if device.can_have_chains:
+                return device
+        return None
 
     def pair_macros(self, instruments):
         i = 1
@@ -142,41 +178,13 @@ class Instrument(EbiagiComponent):
                                                             'link': s.link_parameters(param_A, param_B),
                                                             'color': track.color_index
                                                         })
-                            # #Hack fopr converge
-                            # if get_paired_macro_params(param_A.name)[1] == 'Converge':
-                            #     for device in track.devices:
-                            #         if device.can_have_chains:
-                            #             for subdevice in device.chains[0].devices:
-                            #                 if subdevice.name == 'Convergence Arpeggiator':
-                            #                     for parameter in subdevice.parameters:
-                            #                         if parameter.name == 'Converge':
-                            #                             for s in get_control_surfaces():
-                            #                                 if s.__class__.__name__ == 'ParameterMidiLink':
-                            #                                     self.paired_macros.append(
-                            #                                         {
-                            #                                             'linking_param': param_A,
-                            #                                             'link': s.link_parameters(param_A, parameter),
-                            #                                             'color': track.color_index
-                            #                                         })
-                            # #Hack fopr converge
-                            # if get_paired_macro_params(param_A.name)[1] == 'Converge Rate':
-                            #     for device in track.devices:
-                            #         if device.can_have_chains:
-                            #             for subdevice in device.chains[0].devices:
-                            #                 if subdevice.name == 'Convergence Arpeggiator':
-                            #                     for parameter in subdevice.parameters:
-                            #                         if parameter.name == 'Rate':
-                            #                             for s in get_control_surfaces():
-                            #                                 if s.__class__.__name__ == 'ParameterMidiLink':
-                            #                                     self.paired_macros.append(
-                            #                                         {
-                            #                                             'linking_param': param_A,
-                            #                                             'link': s.link_parameters(param_A, parameter),
-                            #                                             'color': track.color_index
-                            #                                         })
-
-
             i += 1
+
+    def assign_snap_macros(self, snaps):
+        for param in self.get_instrument_device().parameters:
+            if is_snap_macro(param.name):
+                i = int(get_paired_macro_params(param.name)[0])
+                self._set.snap_control.assign_snap_macro(snaps[i], param)
 
     def get_paired_macro(self, param):
         for pm in self.paired_macros:
@@ -243,6 +251,7 @@ class Instrument(EbiagiComponent):
             return
         if is_source_track(track.name):
             track.current_monitoring_state = 2
+            track.arm = 1
         elif is_trunk_track(track.name):
             track.current_monitoring_state = 0
             if track.can_be_armed:

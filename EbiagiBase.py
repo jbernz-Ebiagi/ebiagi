@@ -99,6 +99,9 @@ class EbiagiBase(CompoundComponent, Subject):
         self.add_global_action('select_loop', self.select_loop)
         self.add_global_action('deselect_loop', self.deselect_loop)
         self.add_global_action('stop_loop', self.stop_loop)
+        self.add_global_action('select_section', self.select_section)
+        self.add_global_action('deselect_section', self.deselect_section)
+        self.add_global_action('stop_section', self.stop_section)
         self.add_global_action('stop_all_loops', self.stop_all_loops)
         self.add_global_action('clear_loop', self.clear_loop)
         self.add_global_action('mute_all_loops', self.mute_all_loops)
@@ -133,7 +136,7 @@ class EbiagiBase(CompoundComponent, Subject):
     def rebuild_set(self, action_def='', args=''):
         try:
             self.twister_control.rebuild()
-            self.midi_param_link.rebuild()
+            # self.midi_param_link.rebuild()
             self.audio_swift.rebuild()
             if self.set:
                 self.set.disconnect()
@@ -188,6 +191,22 @@ class EbiagiBase(CompoundComponent, Subject):
     @catch_exception    
     def stop_loop(self, action_def, args):
         self.set.stop_loop(args)
+
+    @catch_exception    
+    def select_section(self, action_def, args):
+        self.log(args)
+        index = int(args)
+        self.set.select_section(index)
+
+    @catch_exception    
+    def deselect_section(self, action_def, args):
+        index = int(args)
+        self.set.deselect_section(index)
+
+    @catch_exception    
+    def stop_section(self, action_def, args):
+        index = int(args)
+        self.set.stop_section(index)
         
     @catch_exception    
     def clear_loop(self, action_def, args):
@@ -208,12 +227,6 @@ class EbiagiBase(CompoundComponent, Subject):
     @catch_exception    
     def stop_all_loops(self, action_def, args):
         self.set.stop_all_loops()
-
-    @catch_exception    
-    def select_section(self, action_def, args):
-        self.log('select section')
-        index = int(args[-1])
-        self.set.select_section(index)
 
     @catch_exception    
     def select_snap(self, action_def, args):

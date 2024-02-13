@@ -39,6 +39,8 @@ class Spine(EbiagiComponent):
 
     def disconnect(self):
         super(Spine, self).disconnect()
+        for section in self.sections:
+            section.disconnect()
         self._scheduler.stop()
         return
 
@@ -57,6 +59,9 @@ class Section(EbiagiComponent):
         self._song.add_current_song_time_listener(self._on_song_time_changed)
 
     def _on_song_time_changed(self):
+        if not self._clip or self._spine._module._track.mute == 1 or self._spine._set.targetted_module != self._spine._module:
+            return
+        # self.log(self._spine._module._track.name)
         is_playing = self._song.current_song_time >= self._clip.start_time and self._song.current_song_time < self._clip.end_time
         if is_playing and not self.active:
             self.midi_action(self.activate)
@@ -64,24 +69,39 @@ class Section(EbiagiComponent):
             self.midi_action(self.deactivate)
 
     def activate(self):
+        self.active = True
+        for command in self._clip_commands:
+            if 'RAC' in command:
+                self._song.back_to_arranger = 0
+                self._spine._set.disable_automation()
+            if 'RAA' in command:
+                self._spine._module.re_enable_automation()
+            if 'SELECT' in command:
+                self._spine._set.select_instrument_by_name(parse_clip_command_param(command))
         if self._clip.looping:
             self._song.loop_start = self._clip.start_time + self._clip.loop_start
             self._song.loop_length = self._clip.length
             self._song.loop = True
-        self.active = True
         if self._spine.triggered_section is self:
             self._spine.triggered_section = None
-        self.log('activate section ' + self.name)
 
     def deactivate(self):
         self.active = False
-        self.log('deactivate section ' + self.name)
 
     def play(self):
         self.log('play section ' + self.name)
+        self._song.loop = False
+        # for command in self._clip_commands:
+        #     if 'RAA' in command:
+        #         self._song.back_to_arranger = 0
+        #     if 'RAC' in command:
+        #         self._song.re_enable_automation()
+        if self.active:
+            self.activate()
         for cue in self._song.cue_points:
             if cue.time == self._clip.start_time:
                 cue.jump()
+
 
     def color(self):
         return self._clip.color_index

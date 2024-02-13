@@ -120,8 +120,29 @@ class MFTInput(EbiagiComponent):
         self.selected_instrument = instrument
         i = 0
         while i < self.NUM_DYNAMIC_ENCODERS:
+            self.twister_control.clear_encoder(i)
+            i += 1
+        i = 0
+        while i < self.NUM_DYNAMIC_ENCODERS:
             param = instrument.get_instrument_device().parameters[i+1]
             color = get_manual_color(param.name, instrument)
+            param_A = param
+            if is_reference_macro(param.name):
+                #for all instruments in list passed in
+                for matching_instrument in self._set.targetted_module.instruments:
+                    #for all tracks for that instrument
+                    for track in [matching_instrument._track] + matching_instrument._ex_tracks:
+                        #if the short names match
+                        if get_paired_macro_params(param_A.name) and get_short_name(track.name) == get_paired_macro_params(param_A.name)[0]:
+                            if not track.mute:
+                                for device in track.devices:
+                                    if device.can_have_chains:
+                                        for param_B in device.parameters:
+                                            if param_B.name == get_paired_macro_params(param_A.name)[1]:
+                                                param = param_B
+                                                color = color_index_map[track.color_index]
+                            else:
+                                color = None
             if instrument.get_paired_macro(param):
                 color = color_index_map[instrument.get_paired_macro(param)['color']]
             self.twister_control.assign_encoder(i, param, param.min, param.max, color)

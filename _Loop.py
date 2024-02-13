@@ -16,6 +16,7 @@ class Loop(EbiagiComponent):
         s = list(self._song.scenes).index(scene)
         self._main_clip_slot = track.clip_slots[s]
         self._clip_slots = []
+        self.is_legato = False
 
         self.short_name = get_short_name(scene.name)
 
@@ -30,6 +31,8 @@ class Loop(EbiagiComponent):
             if instr:
                 clip_slot = ClipSlot(self._song.tracks[i].clip_slots[s], self._song.tracks[i], instr, Set)
                 self._clip_slots.append(clip_slot)
+                if clip_slot.is_legato():
+                    self.is_leagto = True
             i += 1
 
     def select(self):
@@ -48,7 +51,7 @@ class Loop(EbiagiComponent):
                     has_clip = True
             for clip_slot in self._clip_slots:
                 #don't record if there are already clips
-                if not (clip_slot.will_record_on_start() and has_clip):
+                if clip_slot.visible() and not (clip_slot.will_record_on_start() and has_clip):
                     if len(clip_slot._clip_commands) > 0:
                         clip_slot.run_select_commands()
                     # elif not self.is_playing():
@@ -113,7 +116,7 @@ class Loop(EbiagiComponent):
 
     def has_clips(self):
         for clip_slot in self._clip_slots:
-            if clip_slot.has_clip():
+            if clip_slot.has_clip() and clip_slot.visible():
                 return True
         return False
 
@@ -136,10 +139,11 @@ class ClipSlot(EbiagiComponent):
         self._set = Set
         self._held = False
         self._clip_commands = []
+        self.visible_instruments = []
         if self._slot.has_clip:
             self.name = parse_clip_name(self._slot.clip.name)
             self._clip_commands = parse_clip_commands(self._slot.clip.name) or []
-            self.log(self._clip_commands)
+            self.visible_instruments = parse_clip_visible_instruments(self._slot.clip.name) or []
 
     #(because clip_slot.will_record_on_start does not work)
     def will_record_on_start(self):
@@ -216,12 +220,29 @@ class ClipSlot(EbiagiComponent):
         if self._slot.has_clip and self._slot.clip.is_midi_clip:
             self._slot.clip.quantize(5, 1.0)
 
+    def visible(self):
+        if self.has_clip() and self._slot.clip.muted:
+            return False
+        if len(self.visible_instruments) == 0:
+            return True 
+        if self._set.selected_instrument.short_name in self.visible_instruments:
+            return True
+        return False
+
+    def is_legato(self):
+        return self.has_clip() and 'LEGATO' in self._slot.clip.name
+
     def run_select_commands(self):
         if self._slot.has_clip:
 
             self._held = True
 
             for command in self._clip_commands:
+
+                if 'SHOW' in command:
+                    paired_instruments = parse_clip_command_param(command).split(',')
+                    if self._set.selected_instrument and not self_set.selected_instrument.short_name in paired_instruments:
+                        return
 
                 if 'SELECT' in command:
                     self._set.select_instrument(None, self._instrument)
@@ -281,10 +302,11 @@ class ClipSlot(EbiagiComponent):
                         else:
                             beats_remaining = beat_divisor - (total_beats % beat_divisor)
 
-                    for param in self._instrument.get_instrument_device().parameters:
+                    for param in self._instrument.get_instrument_device(self._track).parameters:
+                        self.log(param.name)
                         envelope = self._slot.clip.automation_envelope(param)
                         if envelope:
-                            self._set.ramp_param(param, envelope.value_at_time(0.1), beats_remaining, is_gradual)
+                            self._set.ramp_param( param, envelope.value_at_time(0.1), beats_remaining, is_gradual)
 
                 if 'PQUANT' in command:
                     quantization = int(parse_clip_command_param(command))
@@ -304,11 +326,29 @@ class ClipSlot(EbiagiComponent):
                 if 'STOP' in command:
                     self._track.stop_all_clips()
 
+                if 'STOPALL' in command:
+                    self._set.targetted_module.stop_all()
+
                 if 'MUTE' in command:
-                    self._instrument.mute_loops()
+                    # self._instrument.mute_loops()
+                    self._track.mute = 1
 
                 if 'HOLD' in command:
                     self._slot.fire()
+
+                if 'FIRE' in command:
+                    self._slot.fire()
+
+                if 'ARMTRACK' in command:
+                    self._track.arm = 1
+
+                if 'CLEAR' in command:
+                    for clip_slot in self._track.clip_slots:
+                        if clip_slot.clip and 'CAN_CLEAR' in clip_slot.clip.name:
+                            clip_slot.delete_clip()
+
+                if 'DISARM' in command:
+                    self._track.arm = 0
 
                 if 'RETURN' in command:
                     self._slot.fire()
@@ -341,7 +381,8 @@ class ClipSlot(EbiagiComponent):
                             list(self._track.clip_slots)[self._set.get_scene_index('STOPCLIP')].fire()
 
                     if 'MUTE' in command:
-                        self._instrument.unmute_loops()         
+                        # self._instrument.unmute_loops()      
+                        self._track.mute = 0   
 
             self._held = False
 

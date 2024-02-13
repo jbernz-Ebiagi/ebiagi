@@ -18,6 +18,9 @@ def is_global_loop_track(name):
 def is_snap_control(name):
     return get_short_name(name) == 'SNAP_CONTROL'
 
+def is_snap_macro(name):
+    return name.startswith('SNAP[')
+
 def is_module(name):
     return name.startswith('M[')
     
@@ -51,12 +54,18 @@ def is_live_track(name):
 def is_loop(name):
     return name.startswith('loop[')
 
+def is_section(name):
+    return name.startswith('section[')
+
 def is_variation(name):
     return name.startswith('variation[')
 
 #Paired macro names follow the format: P[track_short_name][macro_name]
 def is_paired_macro(name):
     return name.startswith('P[')
+
+def is_reference_macro(name):
+    return name.startswith('R[')
 
 def get_paired_macro_params(name):
     res = re.findall(r'\[(.*?)\]', name)
@@ -82,7 +91,7 @@ def parse_clip_name(name):
 
 def parse_clip_commands(name):
     words = name.split()
-    commands = [word for word in words if any(keyword in word for keyword in ('PLAY', 'SNAP', 'HOLD', 'MUTE', 'STOP', 'AUM', 'SELECT', 'PQUANT', 'RETURN', 'FA_BASE'))]
+    commands = [word for word in words if any(keyword in word for keyword in ('PLAY', 'SNAP', 'HOLD', 'MUTE', 'STOP', 'AUM', 'SELECT', 'PQUANT', 'RETURN', 'FA_BASE', 'RAA', 'RAC', 'STOPALL', 'FIRE', 'ARMTRACK', 'DISARM', 'CLEAR'))]
     return commands
 
 def parse_clip_command_param(command):
@@ -91,3 +100,12 @@ def parse_clip_command_param(command):
         return match.group(1)
     else:
         return None    
+
+def parse_clip_visible_instruments(name):
+    words = name.split()
+    for word in words:
+        if 'VISI' in word:
+            match = re.search('\(([^)]+)', word)
+            if match is not None:
+                return match.group(1).split(',')
+    return None    

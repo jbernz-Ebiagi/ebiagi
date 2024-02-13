@@ -1,24 +1,20 @@
-from ._Instrument import Instrument
+from ._EbiagiComponent import EbiagiComponent
 from ._naming_conventions import *
 from ._utils import catch_exception
 from _Framework.SubjectSlot import subject_slot
 from functools import partial
 import Live
 
-class SnapControl(Instrument):
+class SnapControl(EbiagiComponent):
 
-    def __init__(self, track, Set):
-        super(SnapControl, self).__init__(track, Set)
-        self._track = track
+    def __init__(self, Set):
+        super(SnapControl, self).__init__()
         self._set = Set
 
         self._snap_map = []
         self.selected_snap = None
 
-        self._knob = self.get_instrument_device().parameters[1]
         self._reset_knob = False
-
-        self._on_macro_value_changed.subject = self._knob
 
         self._last_beat = 0
         self._last_subdivision = 0
@@ -26,8 +22,23 @@ class SnapControl(Instrument):
         self._ramping_params = []
         self._scheduled_snap = None
 
+        self.listeners = []
+        
+        self._lock = False
+        self._lock_timer = Live.Base.Timer(callback=self.unlock, interval=100, repeat=False)
+
+        self.selected_macro = None
+
         self._scheduler = Live.Base.Timer(callback=self.on_tick, interval=1, repeat=True)
         self._scheduler.start()
+
+    def lock(self):
+        self._lock = True
+        self._lock_timer.stop()
+        self._lock_timer.start()
+
+    def unlock(self):
+        self._lock = False
 
     def select_snap(self, snap):
         self._reset_knob = True
@@ -35,24 +46,50 @@ class SnapControl(Instrument):
         self._set_snap_map(snap)
         self._reset_knob = False
 
+    def reset_snap(self):
+        if not self._lock:
+            self.select_snap(self.selected_snap)
+
     def _set_snap_map(self, snap):
+        for snap_param in self._snap_map:
+            snap_param['param'].remove_value_listener(snap_param['listener'])
         self._snap_map = []
-        self._knob.value = 0
+        if self.selected_macro:
+            self._tasks.add(partial(self._update_parameter_value, self.selected_macro, 0))
         for snap_param in snap.snap_params:
+            listener = partial(self.reset_snap)
+            snap_param.param.add_value_listener(listener)
             s = {
                 'param': snap_param.param,
                 'starting_value': snap_param.param.value,
-                'diff': snap_param.value - snap_param.param.value
+                'diff': snap_param.value - snap_param.param.value,
+                'listener': listener
             }
             self._snap_map.append(s)
 
-    @subject_slot('value')
-    def _on_macro_value_changed(self):
+    def assign_snap_macro(self, snap, param):
+        updater = partial(self._on_snap_macro_value_changed, snap, param)
+        param.add_value_listener(updater)
+
+    def _on_snap_macro_value_changed(self, snap, param):
+        if self.selected_snap != snap:
+            self.select_snap(snap)
+        if self.selected_macro != param:
+            self.selected_macro = param
         if self._reset_knob:
             return
+        self.lock()
         for s in self._snap_map:
-            new_value = s['starting_value'] + s['diff']*self._knob.value/self._knob.max
+            new_value = s['starting_value'] + s['diff']*param.value/param.max
             self._tasks.add(partial(self._update_parameter_value, s['param'], new_value))
+
+    # @subject_slot('value')
+    # def _on_macro_value_changed(self):
+    #     if self._reset_knob:
+    #         return
+    #     for s in self._snap_map:
+    #         new_value = s['starting_value'] + s['diff']*self._knob.value/self._knob.max
+    #         self._tasks.add(partial(self._update_parameter_value, s['param'], new_value))
 
     def ramp(self, num_beats):
 
